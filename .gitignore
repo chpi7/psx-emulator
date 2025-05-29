@@ -1,0 +1,7 @@
+.zig-cache
+.swp
+zig-out
+external/*
+log*
+output-*.txt
+bios/*.bin

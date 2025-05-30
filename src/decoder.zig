@@ -127,8 +127,10 @@ fn get_op_copz(i: I) mn {
 
     std.debug.assert(@as(mn, @enumFromInt(@intFromEnum(mn.BC0T) + 2)) == mn.BC1T);
     std.debug.assert(@as(mn, @enumFromInt(@intFromEnum(mn.BC1T) + 2)) == mn.BC2T);
+    std.debug.assert(@as(mn, @enumFromInt(@intFromEnum(mn.BC2T) + 2)) == mn.BC3T);
     std.debug.assert(@as(mn, @enumFromInt(@intFromEnum(mn.BC0F) + 2)) == mn.BC1F);
     std.debug.assert(@as(mn, @enumFromInt(@intFromEnum(mn.BC1F) + 2)) == mn.BC2F);
+    std.debug.assert(@as(mn, @enumFromInt(@intFromEnum(mn.BC2F) + 2)) == mn.BC3F);
 
     std.debug.assert((i.R.op & 0b11000) == 0b01000);
 
@@ -183,4 +185,38 @@ pub fn decode(in: u32) struct { I, mn } {
     };
 
     return .{ instr, op };
+}
+
+const tst = std.testing;
+
+const TC = struct {
+    input: u32,
+    expect: struct { i: I, op: mn },
+};
+
+test "correct mnemonic (shift-imm)" {
+    const testcases = [_]TC{
+        TC{
+            .input = 0b000000_00000_00000_00000_01010_000000,
+            .expect = .{ .i = I{ .R = @bitCast(@as(u32, 0b000000_00000_00000_00000_01010_000000)) }, .op = mn.SLL },
+        },
+        TC{
+            .input = 0b000000_00000_00000_00000_01010_000001,
+            .expect = .{ .i = I{ .R = @bitCast(@as(u32, 0b000000_00000_00000_00000_01010_000001)) }, .op = mn.ILLEGAL },
+        },
+        TC{
+            .input = 0b000000_00000_00000_00000_01010_000010,
+            .expect = .{ .i = I{ .R = @bitCast(@as(u32, 0b000000_00000_00000_00000_01010_000010)) }, .op = mn.SRL },
+        },
+        TC{
+            .input = 0b000000_00000_00000_00000_01010_000011,
+            .expect = .{ .i = I{ .R = @bitCast(@as(u32, 0b000000_00000_00000_00000_01010_000011)) }, .op = mn.SRA },
+        },
+    };
+
+    for (testcases) |t| {
+        const instr, const op = decode(t.input);
+        try tst.expectEqual(t.expect.op, op);
+        try tst.expectEqualDeep(t.expect.i, instr);
+    }
 }

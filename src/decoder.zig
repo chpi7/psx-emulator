@@ -43,6 +43,18 @@ pub const I = union(Type) {
     J: I_J,
     R: I_R,
     S: I_S,
+
+    pub fn format(self: I, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
+        // Get rid of some extra bloat in the generated format function.
+        _ = fmt;
+        _ = options;
+        try switch (self) {
+            I.I => |x| writer.print("{}", .{x}),
+            I.J => |x| writer.print("{}", .{x}),
+            I.R => |x| writer.print("{}", .{x}),
+            I.S => |x| writer.print("{}", .{x}),
+        };
+    }
 };
 
 fn get_type(i: I, op: mn) Type {

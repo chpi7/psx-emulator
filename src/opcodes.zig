@@ -1,0 +1,85 @@
+/// What is encoded in the uppermost bits in every instruction.
+pub const primary = enum(u6) { ADDI = 8, ADDIU = 9, ANDI = 12, BEQ = 4, BGTZ = 7, BLEZ = 6, BNE = 5, BcondZ = 1, COP0 = 16, COP1 = 17, COP2 = 18, COP3 = 19, J = 2, JAL = 3, LB = 32, LBU = 36, LH = 33, LHU = 37, LUI = 15, LW = 35, LWC0 = 48, LWC1 = 49, LWC2 = 50, LWC3 = 51, LWL = 34, LWR = 38, ORI = 13, SB = 40, SH = 41, SLTI = 10, SLTIU = 11, SPECIAL = 0, SW = 43, SWC0 = 56, SWC1 = 57, SWC2 = 58, SWC3 = 59, SWL = 42, SWR = 46, XORI = 14, };
+
+/// What is encoded in funct in R type instructions.
+pub const subop = enum(u6) { ADD = 32, ADDU = 33, AND = 36, BREAK = 13, DIV = 26, DIVU = 27, JALR = 9, JR = 8, MFHI = 16, MFLO = 18, MTHI = 17, MTLO = 19, MULT = 24, MULTU = 25, NOR = 39, OR = 37, SLL = 0, SLLV = 4, SLT = 42, SLTU = 43, SRA = 3, SRAV = 7, SRL = 2, SRLV = 6, SUB = 34, SUBU = 35, SYSCALL = 12, XOR = 38, };
+
+/// The mnemonics for all operations with coprocessor ids expanded. (This doesn't correspond to anything in the ISA encoding!). Coprocessor ones MUST be sequential, otherwise the decoder will break!!!
+pub const op = enum(u32) { ADD, ADDI, ADDIU, ADDU, AND, ANDI, BC0F, BC0T, BC1F, BC1T, BC2F, BC2T, BC3F, BC3T, BEQ, BGEZ, BGEZAL, BGTZ, BLEZ, BLTZ, BLTZAL, BNE, BREAK, CFC0, CFC1, CFC2, CFC3, COP0, COP1, COP2, COP3, CTC0, CTC1, CTC2, CTC3, DIV, DIVU, ILLEGAL, J, JAL, JALR, JR, LB, LBU, LH, LHU, LUI, LW, LWC0, LWC1, LWC2, LWC3, LWL, LWR, MFC0, MFC1, MFC2, MFC3, MFHI, MFLO, MTC0, MTC1, MTC2, MTC3, MTHI, MTLO, MULT, MULTU, NOR, OR, ORI, RFE, SB, SH, SLL, SLLV, SLT, SLTI, SLTIU, SLTU, SRA, SRAV, SRL, SRLV, SUB, SUBU, SW, SWC0, SWC1, SWC2, SWC3, SWL, SWR, SYSCALL, TLBP, TLBR, TLBWI, TLBWR, XOR, XORI, };
+
+pub fn resolve_op(v: u6) op {
+return switch(v) {
+0x02 => op.J,
+0x03 => op.JAL,
+0x04 => op.BEQ,
+0x05 => op.BNE,
+0x06 => op.BLEZ,
+0x07 => op.BGTZ,
+0x08 => op.ADDI,
+0x09 => op.ADDIU,
+0x0a => op.SLTI,
+0x0b => op.SLTIU,
+0x0c => op.ANDI,
+0x0d => op.ORI,
+0x0e => op.XORI,
+0x0f => op.LUI,
+0x10 => op.COP0,
+0x11 => op.COP1,
+0x12 => op.COP2,
+0x13 => op.COP3,
+0x20 => op.LB,
+0x21 => op.LH,
+0x22 => op.LWL,
+0x23 => op.LW,
+0x24 => op.LBU,
+0x25 => op.LHU,
+0x26 => op.LWR,
+0x28 => op.SB,
+0x29 => op.SH,
+0x2a => op.SWL,
+0x2b => op.SW,
+0x2e => op.SWR,
+0x30 => op.LWC0,
+0x31 => op.LWC1,
+0x32 => op.LWC2,
+0x33 => op.LWC3,
+0x38 => op.SWC0,
+0x39 => op.SWC1,
+0x3a => op.SWC2,
+0x3b => op.SWC3,else => op.ILLEGAL,
+};
+}
+
+pub fn resolve_subop(v: u6) op {
+return switch(v) {
+0x00 => op.SLL,
+0x02 => op.SRL,
+0x03 => op.SRA,
+0x04 => op.SLLV,
+0x06 => op.SRLV,
+0x07 => op.SRAV,
+0x08 => op.JR,
+0x09 => op.JALR,
+0x0c => op.SYSCALL,
+0x0d => op.BREAK,
+0x10 => op.MFHI,
+0x11 => op.MTHI,
+0x12 => op.MFLO,
+0x13 => op.MTLO,
+0x18 => op.MULT,
+0x19 => op.MULTU,
+0x1a => op.DIV,
+0x1b => op.DIVU,
+0x20 => op.ADD,
+0x21 => op.ADDU,
+0x22 => op.SUB,
+0x23 => op.SUBU,
+0x24 => op.AND,
+0x25 => op.OR,
+0x26 => op.XOR,
+0x27 => op.NOR,
+0x2a => op.SLT,
+0x2b => op.SLTU,else => op.ILLEGAL,
+};
+}
+

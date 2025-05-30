@@ -12,7 +12,6 @@ pub fn main() !void {
 
     cpu.reset();
 
-    std.log.debug("bios.data[0]=0x{x}", .{bios.data[0]});
     std.log.debug("r0 = 0x{x}", .{cpu.rf.r[0]});
 
     cpu.step();

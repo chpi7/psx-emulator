@@ -1,0 +1,85 @@
+ls:
+  - LB:
+  - LBU:
+  - LH:
+  - LHU:
+  - LW:
+  - LWL:
+  - LWR:
+  - SB:
+  - SH:
+  - SW:
+  - SWL:
+  - SWR:
+
+alu:
+  - ADDI:
+  - ADDIU:
+  - SLTI:
+  - SLTIU:
+  - ANDI:
+  - ORI:
+  - XORI:
+  - LUI:
+  - ADD:
+  - ADDU:
+  - SUB:
+  - SUBU:
+  - SLT:
+  - SLTU:
+  - AND:
+  - OR:
+  - XOR:
+  - NOR:
+  - SLL:
+  - SRL:
+  - SRA:
+  - SLLV:
+  - SRLV:
+  - SRAV:
+  - MULT:
+  - MULTU:
+  - DIV:
+  - DIVU:
+  - MFHI:
+  - MTHI:
+  - MFLO:
+  - MTLO:
+
+branch:
+  - J:
+  - JAL:
+  - JR:
+  - JALR:
+  - BEQ:
+  - BNE:
+  - BLEZ:
+  - BGTZ:
+  - BLTZ:
+  - BGEZ:
+  - BLTZAL:
+  - BGEZAL:
+
+special:
+  - SYSCALL:
+  - BREAK:
+
+coprocessor:
+  - LWCz:
+  - SWCz:
+  - MTCz:
+  - MFCz:
+  - CTCz:
+  - CFCz:
+  - COPz:
+  - BCzT:
+  - BCzF:
+
+cp0:
+  - MTC0:
+  - MFC0:
+  - TLBR:
+  - TLBWI:
+  - TLBWR:
+  - TLBP:
+  - RFE:

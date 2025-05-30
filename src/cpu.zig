@@ -1,5 +1,6 @@
 const std = @import("std");
 const bus = @import("bus.zig");
+const decoder = @import("decoder.zig");
 
 const RegisterFile = struct {
     r: [32]u32 = .{0} ** 32,
@@ -17,7 +18,9 @@ pub const R3000A = struct {
     }
 
     pub fn step(self: *R3000A) void {
-        const instruction = self.bus.read(self.rf.pc);
-        std.log.debug("next instruction {x}", .{instruction});
+        const i_raw = self.bus.read(self.rf.pc);
+        const instr, const mnemonic = decoder.decode(i_raw);
+
+        std.log.debug("next instruction {}, {}", .{ instr, mnemonic });
     }
 };

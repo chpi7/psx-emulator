@@ -11,8 +11,7 @@ pub fn main() !void {
     var cpu: lib.cpu.R3000A = .{ .bus = &bus };
 
     cpu.reset();
-
-    std.log.debug("r0 = 0x{x}", .{cpu.rf.r[0]});
+    cpu.log_state();
 
     cpu.step();
 }

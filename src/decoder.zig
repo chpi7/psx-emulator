@@ -1,6 +1,8 @@
 const std = @import("std");
 const opcodes = @import("opcodes.zig");
 
+const log = std.log.scoped(.decoder);
+
 const mn = opcodes.op;
 const sop = opcodes.subop;
 const pop = opcodes.primary;
@@ -150,7 +152,8 @@ fn get_op(i: I) mn {
 }
 
 pub fn decode(in: u32) struct { I, mn } {
-    std.log.debug("decode 0x{x:08}", .{in});
+    log.debug("decode 0x{x:08}", .{in});
+
     std.debug.assert(@bitOffsetOf(I_I, "op") == 26);
     std.debug.assert(@bitOffsetOf(I_J, "op") == 26);
     std.debug.assert(@bitOffsetOf(I_R, "op") == 26);

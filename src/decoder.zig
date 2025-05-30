@@ -7,9 +7,7 @@ const mn = opcodes.op;
 const sop = opcodes.subop;
 const pop = opcodes.primary;
 
-/// S is SYSCALL or BREAK
-/// Others as per spec
-const Type = enum { I, J, R, S };
+const Type = enum { I, J, R };
 
 const I_I = packed struct(u32) {
     imm: u16 = 0,
@@ -32,17 +30,10 @@ const I_R = packed struct(u32) {
     op: u6 = 0,
 };
 
-const I_S = packed struct(u32) {
-    funct: u6 = 0,
-    comment: u20 = 0,
-    op: u6 = 0,
-};
-
 pub const I = union(Type) {
     I: I_I,
     J: I_J,
     R: I_R,
-    S: I_S,
 
     pub fn format(self: I, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
         // Get rid of some extra bloat in the generated format function.
@@ -52,17 +43,13 @@ pub const I = union(Type) {
             I.I => |x| writer.print("{}", .{x}),
             I.J => |x| writer.print("{}", .{x}),
             I.R => |x| writer.print("{}", .{x}),
-            I.S => |x| writer.print("{}", .{x}),
         };
     }
 };
 
 fn get_type(i: I, op: mn) Type {
     switch (@as(opcodes.primary, @enumFromInt(i.R.op))) {
-        pop.SPECIAL => switch (i.R.funct) {
-            @intFromEnum(sop.BREAK), @intFromEnum(sop.SYSCALL) => return Type.S,
-            else => return Type.R,
-        },
+        pop.SPECIAL => return Type.R,
         pop.BcondZ => return Type.I,
         pop.JAL, pop.J => return Type.J,
         else => {},
@@ -181,7 +168,6 @@ pub fn decode(in: u32) struct { I, mn } {
         Type.I => I{ .I = @bitCast(in) },
         Type.J => I{ .J = @bitCast(in) },
         Type.R => I{ .R = @bitCast(in) },
-        Type.S => I{ .S = @bitCast(in) },
     };
 
     return .{ instr, op };

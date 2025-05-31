@@ -77,30 +77,15 @@ fn get_type(i: I, op: mn) Type {
 }
 
 fn get_op_branch(i: I) mn {
+    const ge = (0b00001 & i.R.rt) != 0;
+    const mid_nz = (0b01110 & i.R.rt) != 0;
+
     return switch (i.R.rt) {
         0b00000 => mn.BLTZ,
         0b00001 => mn.BGEZ,
         0b10000 => mn.BLTZAL,
         0b10001 => mn.BGEZAL,
-
-        // undocumented duplicates (if bit 17-19 is non-zero)
-        0b00010 => mn.BLTZ,
-        0b00100 => mn.BLTZ,
-        0b00110 => mn.BLTZ,
-        0b01000 => mn.BLTZ,
-        0b01010 => mn.BLTZ,
-        0b01100 => mn.BLTZ,
-        0b01110 => mn.BLTZ,
-
-        0b00011 => mn.BGEZ,
-        0b00101 => mn.BGEZ,
-        0b00111 => mn.BGEZ,
-        0b01001 => mn.BGEZ,
-        0b01011 => mn.BGEZ,
-        0b01101 => mn.BGEZ,
-        0b01111 => mn.BGEZ,
-
-        else => mn.ILLEGAL,
+        else => if (mid_nz) if (ge) mn.BGEZ else mn.BLTZ else unreachable,
     };
 }
 
@@ -119,7 +104,7 @@ fn get_op_copz(i: I) mn {
     std.debug.assert(@as(mn, @enumFromInt(@intFromEnum(mn.BC1F) + 2)) == mn.BC2F);
     std.debug.assert(@as(mn, @enumFromInt(@intFromEnum(mn.BC2F) + 2)) == mn.BC3F);
 
-    std.debug.assert((i.R.op & 0b11000) == 0b01000);
+    std.debug.assert((i.R.op & 0b110000) == 0b010000);
 
     return switch (i.R.rs) {
         0b00000 => @enumFromInt(@intFromEnum(mn.MFC0) + nn),
@@ -173,7 +158,7 @@ pub fn decode(in: u32) struct { I, mn } {
     return .{ instr, op };
 }
 
-// ------------------------- TESTS ----------------------------
+// ---------------------------- TESTS ----------------------------
 
 const tst = std.testing;
 
@@ -210,7 +195,8 @@ const TC = struct {
                 try std.testing.expectEqual(v.rt, instr.R.rt);
                 try std.testing.expectEqual(v.rd, instr.R.rd);
                 try std.testing.expectEqual(v.re, instr.R.re);
-                try std.testing.expectEqual(v.funct, instr.R.funct);
+                // Dont check this, we use it to find op, which we already check above.
+                // try std.testing.expectEqual(v.funct, instr.R.funct);
             },
         }
     }
@@ -223,7 +209,7 @@ fn iterate_testcases(testcases: []const TC) !void {
     }
 }
 
-test "correct mnemonic (shift-imm)" {
+test "shift-imm" {
     const testcases = [_]TC{
         TC{
             .input = 0b000000_00000_00000_00000_01010_000000,
@@ -231,15 +217,321 @@ test "correct mnemonic (shift-imm)" {
         },
         TC{
             .input = 0b000000_00000_00000_00000_01010_000001,
-            .expect = .{ .op = mn.ILLEGAL, .i = .{ .R = .{ .re = 0b01010, .funct = 1 } } },
+            .expect = .{ .op = mn.ILLEGAL, .i = .{ .R = .{ .re = 0b01010 } } },
         },
         TC{
             .input = 0b000000_00000_00000_00000_01010_000010,
-            .expect = .{ .op = mn.SRL, .i = .{ .R = .{ .re = 0b01010, .funct = 2 } } },
+            .expect = .{ .op = mn.SRL, .i = .{ .R = .{ .re = 0b01010 } } },
         },
         TC{
             .input = 0b000000_00000_00000_00000_01010_000011,
-            .expect = .{ .op = mn.SRA, .i = .{ .R = .{ .re = 0b01010, .funct = 3 } } },
+            .expect = .{ .op = mn.SRA, .i = .{ .R = .{ .re = 0b01010 } } },
+        },
+    };
+
+    try iterate_testcases(&testcases);
+}
+
+test "shift-reg" {
+    const testcases = [_]TC{
+        TC{
+            .input = 0b000000_00000_00000_00000_01010_000100,
+            .expect = .{ .op = mn.SLLV, .i = .{ .R = .{ .re = 0b01010 } } },
+        },
+        TC{
+            .input = 0b000000_00000_00000_00000_01010_000101,
+            .expect = .{ .op = mn.ILLEGAL, .i = .{ .R = .{ .re = 0b01010 } } },
+        },
+        TC{
+            .input = 0b000000_00000_00000_00000_01010_000110,
+            .expect = .{ .op = mn.SRLV, .i = .{ .R = .{ .re = 0b01010 } } },
+        },
+        TC{
+            .input = 0b000000_00000_00000_00000_01010_000111,
+            .expect = .{ .op = mn.SRAV, .i = .{ .R = .{ .re = 0b01010 } } },
+        },
+    };
+
+    try iterate_testcases(&testcases);
+}
+
+test "jr/jalr" {
+    const testcases = [_]TC{
+        TC{
+            .input = 0b000000_00001_00000_00000_00000_001000,
+            .expect = .{ .op = mn.JR, .i = .{ .R = .{ .rs = 1 } } },
+        },
+        TC{
+            .input = 0b000000_00001_00000_00010_00000_001001,
+            .expect = .{ .op = mn.JALR, .i = .{ .R = .{ .rs = 1, .rd = 2 } } },
+        },
+    };
+
+    try iterate_testcases(&testcases);
+}
+
+test "sys/brk" {
+    const testcases = [_]TC{
+        TC{
+            .input = 0b000000_00000_00000_00000_00000_001100,
+            .expect = .{ .op = mn.SYSCALL, .i = .{ .R = .{} } },
+        },
+        TC{
+            .input = 0b000000_00000_00000_00000_00000_001101,
+            .expect = .{ .op = mn.BREAK, .i = .{ .R = .{} } },
+        },
+    };
+
+    try iterate_testcases(&testcases);
+}
+
+test "mfhi/mflo" {
+    const testcases = [_]TC{
+        TC{
+            .input = 0b000000_00000_00000_00001_00000_010000,
+            .expect = .{ .op = mn.MFHI, .i = .{ .R = .{ .rd = 1 } } },
+        },
+        TC{
+            .input = 0b000000_00000_00000_00010_00000_010010,
+            .expect = .{ .op = mn.MFLO, .i = .{ .R = .{ .rd = 2 } } },
+        },
+    };
+
+    try iterate_testcases(&testcases);
+}
+
+test "mthi/mtlo" {
+    const testcases = [_]TC{
+        TC{
+            .input = 0b000000_00000_00000_00001_00000_010001,
+            .expect = .{ .op = mn.MTHI, .i = .{ .R = .{ .rd = 1 } } },
+        },
+        TC{
+            .input = 0b000000_00000_00000_00010_00000_010011,
+            .expect = .{ .op = mn.MTLO, .i = .{ .R = .{ .rd = 2 } } },
+        },
+    };
+
+    try iterate_testcases(&testcases);
+}
+
+test "mul/div" {
+    const testcases = [_]TC{
+        TC{
+            .input = 0b000000_00001_00010_00000_00000_011000,
+            .expect = .{ .op = mn.MULT, .i = .{ .R = .{ .rs = 1, .rt = 2 } } },
+        },
+        TC{
+            .input = 0b000000_00001_00010_00000_00000_011001,
+            .expect = .{ .op = mn.MULTU, .i = .{ .R = .{ .rs = 1, .rt = 2 } } },
+        },
+        TC{
+            .input = 0b000000_00001_00010_00000_00000_011010,
+            .expect = .{ .op = mn.DIV, .i = .{ .R = .{ .rs = 1, .rt = 2 } } },
+        },
+        TC{
+            .input = 0b000000_00001_00010_00000_00000_011011,
+            .expect = .{ .op = mn.DIVU, .i = .{ .R = .{ .rs = 1, .rt = 2 } } },
+        },
+    };
+
+    try iterate_testcases(&testcases);
+}
+
+test "alu-reg" {
+    const testcases = [_]TC{
+        TC{
+            .input = 0b000000_00001_00010_00100_00000_100000,
+            .expect = .{ .op = mn.ADD, .i = .{ .R = .{ .rs = 1, .rt = 2, .rd = 4 } } },
+        },
+        TC{
+            .input = 0b000000_00001_00010_00100_00000_100001,
+            .expect = .{ .op = mn.ADDU, .i = .{ .R = .{ .rs = 1, .rt = 2, .rd = 4 } } },
+        },
+        TC{
+            .input = 0b000000_00001_00010_00100_00000_100010,
+            .expect = .{ .op = mn.SUB, .i = .{ .R = .{ .rs = 1, .rt = 2, .rd = 4 } } },
+        },
+        TC{
+            .input = 0b000000_00001_00010_00100_00000_100011,
+            .expect = .{ .op = mn.SUBU, .i = .{ .R = .{ .rs = 1, .rt = 2, .rd = 4 } } },
+        },
+        TC{
+            .input = 0b000000_00001_00010_00100_00000_100100,
+            .expect = .{ .op = mn.AND, .i = .{ .R = .{ .rs = 1, .rt = 2, .rd = 4 } } },
+        },
+        TC{
+            .input = 0b000000_00001_00010_00100_00000_100101,
+            .expect = .{ .op = mn.OR, .i = .{ .R = .{ .rs = 1, .rt = 2, .rd = 4 } } },
+        },
+        TC{
+            .input = 0b000000_00001_00010_00100_00000_100110,
+            .expect = .{ .op = mn.XOR, .i = .{ .R = .{ .rs = 1, .rt = 2, .rd = 4 } } },
+        },
+        TC{
+            .input = 0b000000_00001_00010_00100_00000_100111,
+            .expect = .{ .op = mn.NOR, .i = .{ .R = .{ .rs = 1, .rt = 2, .rd = 4 } } },
+        },
+
+        TC{
+            .input = 0b000000_00001_00010_00100_00000_101000,
+            .expect = .{ .op = mn.ILLEGAL, .i = .{ .R = .{} } },
+        },
+        TC{
+            .input = 0b000000_00001_00010_00100_00000_101001,
+            .expect = .{ .op = mn.ILLEGAL, .i = .{ .R = .{} } },
+        },
+        TC{
+            .input = 0b000000_00001_00010_00100_00000_101010,
+            .expect = .{ .op = mn.SLT, .i = .{ .R = .{ .rs = 1, .rt = 2, .rd = 4 } } },
+        },
+        TC{
+            .input = 0b000000_00001_00010_00100_00000_101011,
+            .expect = .{ .op = mn.SLTU, .i = .{ .R = .{ .rs = 1, .rt = 2, .rd = 4 } } },
+        },
+        TC{
+            .input = 0b000000_00001_00010_00100_00000_101100,
+            .expect = .{ .op = mn.ILLEGAL, .i = .{ .R = .{} } },
+        },
+        TC{
+            .input = 0b000000_00001_00010_00100_00000_101101,
+            .expect = .{ .op = mn.ILLEGAL, .i = .{ .R = .{} } },
+        },
+        TC{
+            .input = 0b000000_00001_00010_00100_00000_101110,
+            .expect = .{ .op = mn.ILLEGAL, .i = .{ .R = .{} } },
+        },
+        TC{
+            .input = 0b000000_00001_00010_00100_00000_101111,
+            .expect = .{ .op = mn.ILLEGAL, .i = .{ .R = .{} } },
+        },
+    };
+
+    try iterate_testcases(&testcases);
+}
+
+test "bxxxx (branch)" {
+    const testcases = [_]TC{
+        TC{
+            .input = 0b000001_00001_00000_01000_00010_010001,
+            .expect = .{ .op = mn.BLTZ, .i = .{ .I = .{ .rs = 1, .imm = 0b01000_00010_010001 } } },
+        },
+        TC{
+            .input = 0b000001_00001_00001_01000_00010_010001,
+            .expect = .{ .op = mn.BGEZ, .i = .{ .I = .{ .rs = 1, .rt = 1, .imm = 0b01000_00010_010001 } } },
+        },
+        TC{
+            .input = 0b000001_00001_10000_01000_00010_010001,
+            .expect = .{ .op = mn.BLTZAL, .i = .{ .I = .{ .rs = 1, .rt = 0b10000, .imm = 0b01000_00010_010001 } } },
+        },
+        TC{
+            .input = 0b000001_00001_10001_01000_00010_010001,
+            .expect = .{ .op = mn.BGEZAL, .i = .{ .I = .{ .rs = 1, .rt = 0b10001, .imm = 0b01000_00010_010001 } } },
+        },
+
+        // some undocumented ones
+        TC{
+            .input = 0b000001_00001_10100_01000_00010_010001,
+            .expect = .{ .op = mn.BLTZ, .i = .{ .I = .{ .rs = 1, .rt = 0b10100, .imm = 0b01000_00010_010001 } } },
+        },
+        TC{
+            .input = 0b000001_00001_10101_01000_00010_010001,
+            .expect = .{ .op = mn.BGEZ, .i = .{ .I = .{ .rs = 1, .rt = 0b10101, .imm = 0b01000_00010_010001 } } },
+        },
+    };
+
+    try iterate_testcases(&testcases);
+}
+
+test "j/jal" {
+    const testcases = [_]TC{
+        TC{
+            .input = 0b000010_11000_00000_00000_00000_010001,
+            .expect = .{ .op = mn.J, .i = .{ .J = .{ .target = 0b11000_00000_00000_00000_010001 } } },
+        },
+        TC{
+            .input = 0b000011_11000_00000_00000_00000_010001,
+            .expect = .{ .op = mn.JAL, .i = .{ .J = .{ .target = 0b11000_00000_00000_00000_010001 } } },
+        },
+    };
+
+    try iterate_testcases(&testcases);
+}
+
+test "beq/bne" {
+    const testcases = [_]TC{
+        TC{
+            .input = 0b000100_00001_00010_11000_00000_010001,
+            .expect = .{ .op = mn.BEQ, .i = .{ .I = .{ .rs = 1, .rt = 2, .imm = 0b11000_00000_010001 } } },
+        },
+        TC{
+            .input = 0b000101_00001_00010_11000_00000_010001,
+            .expect = .{ .op = mn.BNE, .i = .{ .I = .{ .rs = 1, .rt = 2, .imm = 0b11000_00000_010001 } } },
+        },
+    };
+
+    try iterate_testcases(&testcases);
+}
+
+test "blez/bgtz" {
+    const testcases = [_]TC{
+        TC{
+            .input = 0b000110_00001_00000_11000_00000_010001,
+            .expect = .{ .op = mn.BLEZ, .i = .{ .I = .{ .rs = 1, .imm = 0b11000_00000_010001 } } },
+        },
+        TC{
+            .input = 0b000111_00001_00000_11000_00000_010001,
+            .expect = .{ .op = mn.BGTZ, .i = .{ .I = .{ .rs = 1, .imm = 0b11000_00000_010001 } } },
+        },
+    };
+
+    try iterate_testcases(&testcases);
+}
+
+test "alu-imm" {
+    const testcases = [_]TC{
+        TC{
+            .input = 0b001000_00001_00010_11000_00000_010001,
+            .expect = .{ .op = mn.ADDI, .i = .{ .I = .{ .rs = 1, .rt = 2, .imm = 0b11000_00000_010001 } } },
+        },
+        TC{
+            .input = 0b001001_00001_00010_11000_00000_010001,
+            .expect = .{ .op = mn.ADDIU, .i = .{ .I = .{ .rs = 1, .rt = 2, .imm = 0b11000_00000_010001 } } },
+        },
+        TC{
+            .input = 0b001010_00001_00010_11000_00000_010001,
+            .expect = .{ .op = mn.SLTI, .i = .{ .I = .{ .rs = 1, .rt = 2, .imm = 0b11000_00000_010001 } } },
+        },
+        TC{
+            .input = 0b001011_00001_00010_11000_00000_010001,
+            .expect = .{ .op = mn.SLTIU, .i = .{ .I = .{ .rs = 1, .rt = 2, .imm = 0b11000_00000_010001 } } },
+        },
+        TC{
+            .input = 0b001100_00001_00010_11000_00000_010001,
+            .expect = .{ .op = mn.ANDI, .i = .{ .I = .{ .rs = 1, .rt = 2, .imm = 0b11000_00000_010001 } } },
+        },
+        TC{
+            .input = 0b001101_00001_00010_11000_00000_010001,
+            .expect = .{ .op = mn.ORI, .i = .{ .I = .{ .rs = 1, .rt = 2, .imm = 0b11000_00000_010001 } } },
+        },
+        TC{
+            .input = 0b001110_00001_00010_11000_00000_010001,
+            .expect = .{ .op = mn.XORI, .i = .{ .I = .{ .rs = 1, .rt = 2, .imm = 0b11000_00000_010001 } } },
+        },
+        TC{
+            .input = 0b001111_00001_00010_11000_00000_010001,
+            .expect = .{ .op = mn.LUI, .i = .{ .I = .{ .rs = 1, .rt = 2, .imm = 0b11000_00000_010001 } } },
+        },
+    };
+
+    try iterate_testcases(&testcases);
+}
+
+test "MFCn" {
+    const testcases = [_]TC{
+        TC{
+            .input = 0b010000_00000_00001_00000_00000_000000,
+            .expect = .{ .op = mn.MFC0, .i = .{ .R = .{ .rs = 0, .rt = 1, .rd = 0, .re = 0 } } },
         },
     };
 

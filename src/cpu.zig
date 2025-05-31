@@ -1,10 +1,14 @@
 const std = @import("std");
 const bus = @import("bus.zig");
 const decoder = @import("decoder.zig");
+const math = @import("math.zig");
 
 const log = std.log.scoped(.cpu);
 const I = decoder.I;
 const Op = decoder.opcodes.op;
+
+const zero_ext = math.zero_ext;
+const sign_ext = math.sign_ext;
 
 const RegisterFile = struct {
     r: [32]u32 = .{0} ** 32,
@@ -39,19 +43,6 @@ const RegisterFile = struct {
         try writer.print("    pc {x:08}   hi {x:08}   lo {x:08}", .{ self.pc, self.hi, self.lo });
     }
 };
-
-fn zero_ext(v: anytype) u32 {
-    const T = @TypeOf(v);
-    comptime {
-        if (@typeInfo(T).int.signedness != .unsigned) {
-            @compileError("zero_extend only works for unsigned types");
-        }
-        if (@bitSizeOf(T) >= 32) {
-            @compileError("zero_extend only works for types smaller than 32 bits");
-        }
-    }
-    return @as(u32, v);
-}
 
 pub const Cpu = struct {
     halted: bool = false,
@@ -104,7 +95,7 @@ pub const Cpu = struct {
     }
 
     fn op_sw(self: *@This(), i: I) void {
-        const dst_addr = self.rf.read(i.I.rs) + i.I.imm;
+        const dst_addr = self.rf.read(i.I.rs) +% sign_ext(i.I.imm);
         const v = self.rf.read(i.I.rt);
         self.bus.write32(dst_addr, v);
     }

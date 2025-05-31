@@ -53,31 +53,37 @@ inline fn is_aligned_log2(addr: u32, comptime alignment: u32) bool {
     return (addr & bitmask(alignment)) == 0;
 }
 
+pub const Exception = enum { Address };
+
 pub const Bus = struct {
     bios: *bios.Bios,
 
     pub fn read32(self: *@This(), a: u32) u32 {
         if (!is_aligned_log2(a, 2)) {
             log.warn("unaligned read32 {x}", .{a});
-            // TODO: Address Exception
+            self.signal_exception(.Address);
         }
 
-        log.debug("read {x}", .{a});
+        var res: u32 = 0;
         switch (a) {
             MM.bios.start...MM.bios.end() => {
-                return self.bios.read_u32(a - MM.bios.start);
+                res = self.bios.read_u32(a - MM.bios.start);
             },
             else => {
                 log.warn("unmapped memory (read, address = {x})", .{a});
-                return 0;
+                res = 0;
             },
         }
+
+        log.debug("read {x} = {x}", .{ a, res });
+
+        return res;
     }
 
-    pub fn write32(_: *@This(), a: u32, v: u32) void {
+    pub fn write32(self: *@This(), a: u32, v: u32) void {
         if (!is_aligned_log2(a, 2)) {
             log.warn("unaligned write32 {x}", .{a});
-            // TODO: Address Exception
+            self.signal_exception(.Address);
         }
 
         log.debug("write {x} := {x}", .{ a, v });
@@ -90,6 +96,14 @@ pub const Bus = struct {
                 log.warn("unmapped memory (write, address = {x})", .{a});
             },
         }
+    }
+
+    /// This should roughly do what the pseudo function "SignalException" does in
+    /// https://www.cs.cmu.edu/afs/cs/academic/class/15740-f97/public/doc/mips-isa.pdf.
+    fn signal_exception(self: *@This(), e: Exception) void {
+        _ = self;
+        _ = e;
+        // TODO
     }
 };
 

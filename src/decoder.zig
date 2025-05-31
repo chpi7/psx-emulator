@@ -173,36 +173,75 @@ pub fn decode(in: u32) struct { I, mn } {
     return .{ instr, op };
 }
 
+// ------------------------- TESTS ----------------------------
+
 const tst = std.testing;
 
 const TC = struct {
     input: u32,
-    expect: struct { i: I, op: mn },
+    expect: struct { op: mn, i: union(Type) {
+        I: struct { imm: u16 = 0, rt: u5 = 0, rs: u5 = 0 },
+        J: struct { target: u26 = 0 },
+        R: struct { funct: u6 = 0, re: u5 = 0, rd: u5 = 0, rt: u5 = 0, rs: u5 = 0 },
+    } },
+
+    pub fn check(self: @This(), instr: I, op: mn) !void {
+        try std.testing.expectEqual(self.expect.op, op);
+        if (op == mn.ILLEGAL) {
+            // Don't care about the rest if it is illegal.
+            return;
+        }
+
+        const tag_exp = std.meta.activeTag(self.expect.i);
+        const tag_act = std.meta.activeTag(instr);
+        try std.testing.expectEqual(tag_exp, tag_act);
+
+        switch (self.expect.i) {
+            .I => |v| {
+                try std.testing.expectEqual(v.rs, instr.I.rs);
+                try std.testing.expectEqual(v.rt, instr.I.rt);
+                try std.testing.expectEqual(v.imm, instr.I.imm);
+            },
+            .J => |v| {
+                try std.testing.expectEqual(v.target, instr.J.target);
+            },
+            .R => |v| {
+                try std.testing.expectEqual(v.rs, instr.R.rs);
+                try std.testing.expectEqual(v.rt, instr.R.rt);
+                try std.testing.expectEqual(v.rd, instr.R.rd);
+                try std.testing.expectEqual(v.re, instr.R.re);
+                try std.testing.expectEqual(v.funct, instr.R.funct);
+            },
+        }
+    }
 };
+
+fn iterate_testcases(testcases: []const TC) !void {
+    for (testcases) |t| {
+        const instr, const op = decode(t.input);
+        try t.check(instr, op);
+    }
+}
 
 test "correct mnemonic (shift-imm)" {
     const testcases = [_]TC{
         TC{
             .input = 0b000000_00000_00000_00000_01010_000000,
-            .expect = .{ .i = I{ .R = @bitCast(@as(u32, 0b000000_00000_00000_00000_01010_000000)) }, .op = mn.SLL },
+            .expect = .{ .op = mn.SLL, .i = .{ .R = .{ .re = 0b01010 } } },
         },
         TC{
             .input = 0b000000_00000_00000_00000_01010_000001,
-            .expect = .{ .i = I{ .R = @bitCast(@as(u32, 0b000000_00000_00000_00000_01010_000001)) }, .op = mn.ILLEGAL },
+            .expect = .{ .op = mn.ILLEGAL, .i = .{ .R = .{ .re = 0b01010, .funct = 1 } } },
         },
         TC{
             .input = 0b000000_00000_00000_00000_01010_000010,
-            .expect = .{ .i = I{ .R = @bitCast(@as(u32, 0b000000_00000_00000_00000_01010_000010)) }, .op = mn.SRL },
+            .expect = .{ .op = mn.SRL, .i = .{ .R = .{ .re = 0b01010, .funct = 2 } } },
         },
         TC{
             .input = 0b000000_00000_00000_00000_01010_000011,
-            .expect = .{ .i = I{ .R = @bitCast(@as(u32, 0b000000_00000_00000_00000_01010_000011)) }, .op = mn.SRA },
+            .expect = .{ .op = mn.SRA, .i = .{ .R = .{ .re = 0b01010, .funct = 3 } } },
         },
     };
 
-    for (testcases) |t| {
-        const instr, const op = decode(t.input);
-        try tst.expectEqual(t.expect.op, op);
-        try tst.expectEqualDeep(t.expect.i, instr);
-    }
+    try iterate_testcases(&testcases);
 }

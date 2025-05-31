@@ -21,7 +21,7 @@ pub fn main() !void {
 
     cpu.reset();
 
-    while (true) {
+    while (!cpu.halted) {
         cpu.step();
     }
 }

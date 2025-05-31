@@ -1,6 +1,8 @@
 const std = @import("std");
 const bios = @import("bios.zig");
 
+const log = std.log.scoped(.bus);
+
 /// KUSEG     KSEG0     KSEG1
 /// 00000000h 80000000h A0000000h  2048K  Main RAM (first 64K reserved for BIOS)
 /// 1F000000h 9F000000h BF000000h  8192K  Expansion Region 1 (ROM/RAM)
@@ -35,14 +37,33 @@ const MM = struct {
 pub const Bus = struct {
     bios: *bios.Bios,
 
-    pub fn read(self: *Bus, a: u32) u32 {
+    pub fn read32(self: *@This(), a: u32) u32 {
+        log.debug("read {x}", .{a});
         switch (a) {
             MM.bios.start...(MM.bios.start + MM.bios.size - 1) => {
                 return self.bios.read_u32(a - MM.bios.start);
             },
             else => {
-                std.log.debug("unmapped memory read (address = 0x{x})", .{a});
+                log.warn("unmapped memory (read, address = {x})", .{a});
                 return 0;
+            },
+        }
+    }
+
+    pub fn write32(_: *@This(), a: u32, v: u32) void {
+        if ((a & 0b11) != 0) {
+            // not aligned to 4 bytes -> error
+            // TODO: Address Exception
+        }
+
+        log.debug("write {x} := {x}", .{ a, v });
+        switch (a) {
+            MM.bios.start...(MM.bios.start + MM.bios.size - 1) => {
+                // BIOS ROM is read only: (https://github.com/simias/psx-hardware-tests/blob/master/tests/bios_write/main.s)
+                // no exception, no errors generated
+            },
+            else => {
+                log.warn("unmapped memory (write, address = {x})", .{a});
             },
         }
     }

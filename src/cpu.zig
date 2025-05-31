@@ -54,6 +54,7 @@ fn zero_ext(v: anytype) u32 {
 }
 
 pub const Cpu = struct {
+    halted: bool = false,
     rf: RegisterFile = .{},
     bus: *bus.Bus,
 
@@ -71,7 +72,7 @@ pub const Cpu = struct {
     }
 
     pub fn step(self: *Cpu) void {
-        const i_raw = self.bus.read(self.rf.pc);
+        const i_raw = self.bus.read32(self.rf.pc);
         const i, const op = decoder.decode(i_raw);
 
         log.debug("decoded {}, {}", .{ op, i });
@@ -79,13 +80,16 @@ pub const Cpu = struct {
         switch (op) {
             .LUI => self.op_lui(i),
             .ORI => self.op_ori(i),
-            else => unreachable,
+            .SW => self.op_sw(i),
+            else => {
+                log.err("unknown instruction encountered. halted := true", .{});
+                self.halted = true;
+            },
         }
 
         self.rf.pc += 4;
 
-        log.debug("executed okay", .{});
-        self.log_state();
+        // self.log_state();
     }
 
     // ----------------------- Instructions -----------------------
@@ -97,5 +101,11 @@ pub const Cpu = struct {
     fn op_ori(self: *@This(), i: I) void {
         const imm32 = zero_ext(i.I.rt);
         self.rf.write(i.I.rt, imm32 | self.rf.read(i.I.rs));
+    }
+
+    fn op_sw(self: *@This(), i: I) void {
+        const dst_addr = self.rf.read(i.I.rs) + i.I.imm;
+        const v = self.rf.read(i.I.rt);
+        self.bus.write32(dst_addr, v);
     }
 };

@@ -1,5 +1,5 @@
 const std = @import("std");
-const opcodes = @import("opcodes.zig");
+pub const opcodes = @import("opcodes.zig");
 
 const log = std.log.scoped(.decoder);
 
@@ -170,7 +170,7 @@ const TC = struct {
         R: struct { funct: u6 = 0, re: u5 = 0, rd: u5 = 0, rt: u5 = 0, rs: u5 = 0 },
     } },
 
-    pub fn check(self: @This(), instr: I, op: mn) !void {
+    pub fn check(self: *const @This(), instr: I, op: mn) !void {
         try std.testing.expectEqual(self.expect.op, op);
         if (op == mn.ILLEGAL) {
             // Don't care about the rest if it is illegal.

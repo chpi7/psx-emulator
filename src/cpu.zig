@@ -1,7 +1,10 @@
 const std = @import("std");
 const bus = @import("bus.zig");
 const decoder = @import("decoder.zig");
+
 const log = std.log.scoped(.cpu);
+const I = decoder.I;
+const Op = decoder.opcodes.op;
 
 const RegisterFile = struct {
     r: [32]u32 = .{0} ** 32,
@@ -9,12 +12,17 @@ const RegisterFile = struct {
     hi: u32 = 0,
     lo: u32 = 0,
 
-    pub fn format(
-        self: RegisterFile,
-        comptime fmt: []const u8,
-        options: std.fmt.FormatOptions,
-        writer: anytype,
-    ) !void {
+    pub fn read(self: *const @This(), i: u5) u32 {
+        return self.r[i];
+    }
+
+    pub fn write(self: *@This(), i: u5, v: u32) void {
+        self.r[i] = v;
+        // BIOS uses write to 0 as a sink, therefore ensure that it stays zero.
+        self.r[0] = 0;
+    }
+
+    pub fn format(self: RegisterFile, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
         _ = fmt;
         _ = options;
 
@@ -32,6 +40,19 @@ const RegisterFile = struct {
     }
 };
 
+fn zero_ext(v: anytype) u32 {
+    const T = @TypeOf(v);
+    comptime {
+        if (@typeInfo(T).int.signedness != .unsigned) {
+            @compileError("zero_extend only works for unsigned types");
+        }
+        if (@bitSizeOf(T) >= 32) {
+            @compileError("zero_extend only works for types smaller than 32 bits");
+        }
+    }
+    return @as(u32, v);
+}
+
 pub const Cpu = struct {
     rf: RegisterFile = .{},
     bus: *bus.Bus,
@@ -42,12 +63,39 @@ pub const Cpu = struct {
 
     pub fn reset(self: *Cpu) void {
         self.rf.pc = 0xbfc00000; // start address of BIOS
+        for (0..32) |i| {
+            self.rf.write(@truncate(i), 0xdeadbeef);
+        }
+        log.debug("reset", .{});
+        self.log_state();
     }
 
     pub fn step(self: *Cpu) void {
         const i_raw = self.bus.read(self.rf.pc);
-        const instr, const mnemonic = decoder.decode(i_raw);
+        const i, const op = decoder.decode(i_raw);
 
-        log.debug("next instruction {}, {}", .{ instr, mnemonic });
+        log.debug("decoded {}, {}", .{ op, i });
+
+        switch (op) {
+            .LUI => self.op_lui(i),
+            .ORI => self.op_ori(i),
+            else => unreachable,
+        }
+
+        self.rf.pc += 4;
+
+        log.debug("executed okay", .{});
+        self.log_state();
+    }
+
+    // ----------------------- Instructions -----------------------
+
+    fn op_lui(self: *@This(), i: I) void {
+        self.rf.write(i.I.rt, @as(u32, i.I.imm) << 16);
+    }
+
+    fn op_ori(self: *@This(), i: I) void {
+        const imm32 = zero_ext(i.I.rt);
+        self.rf.write(i.I.rt, imm32 | self.rf.read(i.I.rs));
     }
 };

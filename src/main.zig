@@ -1,6 +1,15 @@
 const std = @import("std");
 const lib = @import("psx_emulator_lib");
 
+// Logging config:
+const scope_levels = [_]std.log.ScopeLevel{
+    .{ .scope = .decoder, .level = .warn },
+};
+pub const std_options = std.Options{
+    .log_level = .debug,
+    .log_scope_levels = &scope_levels,
+};
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -11,7 +20,8 @@ pub fn main() !void {
     var cpu: lib.cpu.Cpu = .{ .bus = &bus };
 
     cpu.reset();
-    cpu.log_state();
 
-    cpu.step();
+    while (true) {
+        cpu.step();
+    }
 }

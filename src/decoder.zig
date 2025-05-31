@@ -527,11 +527,23 @@ test "alu-imm" {
     try iterate_testcases(&testcases);
 }
 
-test "MFCn" {
+test "MFCn/CFCn/MTCn/CTCn" {
     const testcases = [_]TC{
         TC{
             .input = 0b010000_00000_00001_00000_00000_000000,
             .expect = .{ .op = mn.MFC0, .i = .{ .R = .{ .rs = 0, .rt = 1, .rd = 0, .re = 0 } } },
+        },
+        TC{
+            .input = 0b010000_00010_00001_00000_00000_000000,
+            .expect = .{ .op = mn.CFC0, .i = .{ .R = .{ .rs = 2, .rt = 1, .rd = 0, .re = 0 } } },
+        },
+        TC{
+            .input = 0b010000_00100_00001_00000_00000_000000,
+            .expect = .{ .op = mn.MTC0, .i = .{ .R = .{ .rs = 4, .rt = 1, .rd = 0, .re = 0 } } },
+        },
+        TC{
+            .input = 0b010000_00110_00001_00000_00000_000000,
+            .expect = .{ .op = mn.CTC0, .i = .{ .R = .{ .rs = 6, .rt = 1, .rd = 0, .re = 0 } } },
         },
     };
 

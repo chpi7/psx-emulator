@@ -17,21 +17,32 @@ const log = std.log.scoped(.bus);
 /// KUSEG -> user
 /// KSEG0 -> cached mirror of KSEG1
 /// KSEG1 -> uncached "normal" memory
-/// KSEG2 -> contains cache control and io ports
+/// KSEG2 -> only IO (Cache Control)
 const MM = struct {
+    /// Target region of the memory map.
+    /// IO_CACHE is KSEG2 only.
+    pub const Region = enum { RAM, EX1, SCR, IO, EX2, EX3, BIOS, IO_CACHE };
+
+    /// Segment of the memory map.
+    pub const Segment = enum { KUSEG, KSEG0, KSEG1, KSEG2 };
+
+    /// Entry in the memory map.
     pub const Entry = struct {
         start: u32 = 0,
         size: u32 = 0,
-        name: []const u8 = "",
+        reg: Region,
+        seg: Segment,
+
+        pub fn end(comptime self: @This()) u32 {
+            return self.start + (self.size - 1);
+        }
     };
 
     // KSEG1 Mappings:
-    pub const ram: Entry = .{ .start = 0xa0000000, .size = 2048 * 1024, .name = "RAM" };
-    pub const exp1: Entry = .{ .start = 0xbf000000, .size = 8192 * 1024, .name = "Expansion Region 1" };
-    pub const io: Entry = .{ .start = 0xbf801000, .size = 8 * 1024, .name = "Expansion Region 2" };
-    pub const exp2: Entry = .{ .start = 0xbf802000, .size = 8 * 1024, .name = "Expansion Region 2" };
-    pub const exp3: Entry = .{ .start = 0xbfa00000, .size = 2048 * 1024, .name = "Expansion Region 3" };
-    pub const bios: Entry = .{ .start = 0xbfc00000, .size = 512 * 1024, .name = "BIOS ROM" };
+    pub const ram: Entry = .{ .reg = .RAM, .seg = .KSEG1, .start = 0xa0000000, .size = 2048 * 1024 };
+    pub const ex1: Entry = .{ .reg = .EX1, .seg = .KSEG1, .start = 0xbf000000, .size = 8192 * 1024 };
+    pub const io: Entry = .{ .reg = .IO, .seg = .KSEG1, .start = 0xbf801000, .size = 8 * 1024 };
+    pub const bios: Entry = .{ .reg = .BIOS, .seg = .KSEG1, .start = 0xbfc00000, .size = 512 * 1024 };
 };
 
 pub const Bus = struct {
@@ -40,7 +51,7 @@ pub const Bus = struct {
     pub fn read32(self: *@This(), a: u32) u32 {
         log.debug("read {x}", .{a});
         switch (a) {
-            MM.bios.start...(MM.bios.start + MM.bios.size - 1) => {
+            MM.bios.start...MM.bios.end() => {
                 return self.bios.read_u32(a - MM.bios.start);
             },
             else => {
@@ -58,7 +69,7 @@ pub const Bus = struct {
 
         log.debug("write {x} := {x}", .{ a, v });
         switch (a) {
-            MM.bios.start...(MM.bios.start + MM.bios.size - 1) => {
+            MM.bios.start...MM.bios.end() => {
                 // BIOS ROM is read only: (https://github.com/simias/psx-hardware-tests/blob/master/tests/bios_write/main.s)
                 // no exception, no errors generated
             },

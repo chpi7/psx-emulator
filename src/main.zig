@@ -8,7 +8,7 @@ pub fn main() !void {
 
     var bios = try lib.bios.Bios.load("./bios/scph-1002-v20-eu.bin", allocator);
     var bus = lib.bus.Bus{ .bios = &bios };
-    var cpu: lib.cpu.R3000A = .{ .bus = &bus };
+    var cpu: lib.cpu.Cpu = .{ .bus = &bus };
 
     cpu.reset();
     cpu.log_state();

@@ -32,19 +32,19 @@ const RegisterFile = struct {
     }
 };
 
-pub const R3000A = struct {
+pub const Cpu = struct {
     rf: RegisterFile = .{},
     bus: *bus.Bus,
 
-    pub fn log_state(self: *R3000A) void {
+    pub fn log_state(self: *Cpu) void {
         log.debug("{s}", .{self.rf});
     }
 
-    pub fn reset(self: *R3000A) void {
+    pub fn reset(self: *Cpu) void {
         self.rf.pc = 0xbfc00000; // start address of BIOS
     }
 
-    pub fn step(self: *R3000A) void {
+    pub fn step(self: *Cpu) void {
         const i_raw = self.bus.read(self.rf.pc);
         const instr, const mnemonic = decoder.decode(i_raw);
 

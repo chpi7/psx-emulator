@@ -45,10 +45,23 @@ const MM = struct {
     pub const bios: Entry = .{ .reg = .BIOS, .seg = .KSEG1, .start = 0xbfc00000, .size = 512 * 1024 };
 };
 
+inline fn bitmask(comptime n: u32) u32 {
+    return (1 << n) - 1;
+}
+
+inline fn is_aligned_log2(addr: u32, comptime alignment: u32) bool {
+    return (addr & bitmask(alignment)) == 0;
+}
+
 pub const Bus = struct {
     bios: *bios.Bios,
 
     pub fn read32(self: *@This(), a: u32) u32 {
+        if (!is_aligned_log2(a, 2)) {
+            log.warn("unaligned read32 {x}", .{a});
+            // TODO: Address Exception
+        }
+
         log.debug("read {x}", .{a});
         switch (a) {
             MM.bios.start...MM.bios.end() => {
@@ -62,8 +75,8 @@ pub const Bus = struct {
     }
 
     pub fn write32(_: *@This(), a: u32, v: u32) void {
-        if ((a & 0b11) != 0) {
-            // not aligned to 4 bytes -> error
+        if (!is_aligned_log2(a, 2)) {
+            log.warn("unaligned write32 {x}", .{a});
             // TODO: Address Exception
         }
 
@@ -79,3 +92,28 @@ pub const Bus = struct {
         }
     }
 };
+
+test "bitmask" {
+    try std.testing.expectEqual(0b0, bitmask(0));
+    try std.testing.expectEqual(0b1, bitmask(1));
+    try std.testing.expectEqual(0b1111, bitmask(4));
+    try std.testing.expectEqual(0b11111111_11111111_11111111_11111111, bitmask(32));
+}
+
+test "is_aligned_log2" {
+    // everything is aligned to 1
+    try std.testing.expect(is_aligned_log2(1, 0));
+    try std.testing.expect(is_aligned_log2(2, 0));
+    try std.testing.expect(is_aligned_log2(3, 0));
+
+    // aligned to 2
+    try std.testing.expect(!is_aligned_log2(1, 1));
+    try std.testing.expect(is_aligned_log2(2, 1));
+    try std.testing.expect(!is_aligned_log2(3, 1));
+    try std.testing.expect(is_aligned_log2(4, 1));
+
+    // aligned to 4
+    try std.testing.expect(is_aligned_log2(4, 2));
+    try std.testing.expect(is_aligned_log2(8, 2));
+    try std.testing.expect(!is_aligned_log2(10, 2));
+}

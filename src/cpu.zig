@@ -72,6 +72,7 @@ pub const Cpu = struct {
             .LUI => self.op_lui(i),
             .ORI => self.op_ori(i),
             .SW => self.op_sw(i),
+            .SLL => self.op_sll(i),
             else => {
                 log.err("unknown instruction encountered. halted := true", .{});
                 self.halted = true;
@@ -92,6 +93,12 @@ pub const Cpu = struct {
     fn op_ori(self: *@This(), i: I) void {
         const imm32 = zero_ext(i.I.rt);
         self.rf.write(i.I.rt, imm32 | self.rf.read(i.I.rs));
+    }
+
+    fn op_sll(self: *@This(), i: I) void {
+        const sa = i.R.re;
+        const res = self.rf.read(i.R.rt) << sa;
+        self.rf.write(i.R.rd, res);
     }
 
     fn op_sw(self: *@This(), i: I) void {

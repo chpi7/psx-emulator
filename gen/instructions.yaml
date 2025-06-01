@@ -1,47 +1,66 @@
 operand_encoding:
   imm26:
-    imm: imm26
+    t: J
+    imm26: target
   op_rd:
-    src: rd
+    t: R
   op_rd_rs:
-    dst: rs
-    ret: rd
+    t: R
+    # rs: dst
+    # rd: ret
   op_rd_rs_rt:
-    dst: rd
-    opl: rs
-    opr: rt
+    t: R
+    # rd: dst
+    # rs: opl
+    # dt: opr
   op_rd_rt_re:
-    dst: rd
-    opl: rt
-    opr: re
+    t: R
+    # rd: dst
+    # rt: opl
+    # re: opr
+  op_rd_rt_rs:
+    t: R
   op_rs:
-    dst: rs
+    t: R
+    # dst: rs
   op_rs_imm:
-    dst: rs
-    offset: imm16
+    t: I
+    # dst: rs
+    # offset: imm16
   op_rs_rt:
-    opl: rs
-    opr: rt
+    t: R
+    # opl: rs
+    # opr: rt
   op_rt_imm:
-    dst: rt
-    imm: imm16
+    t: I 
+    # dst: rt
+    # imm: imm16
   op_rs_rt_imm:
-    opl: rs
-    opr: rt
-    offset: imm16
+    t: I
+    # opl: rs
+    # opr: rt
+    # offset: imm16
   op_rt_offset_base:
+    t: I
+    # val: rt
     base: rs
-    val: rt
-    offset: imm16
+    offset: imm
   op_rt_rs_imm:
-    dst: rt
-    opl: rs
-    opr: imm16
+    t: I
+    # dst: rt
+    # opl: rs
+    # opr: imm16
   op_sys_brk:
-    code: imm20
+    t: R
+    # this is a bit tricky rn when there is only the three instruction types in the code.
+    # code: imm20
   op_rt_fs:
-    dst: fs
-    src: rt
+    t: R
+    # dst: fs
+    # src: rt
+  op_cc_offset_fp:
+    t: X
+    cc: 
 
 instruction_encoding:
   imm26:
@@ -52,9 +71,6 @@ instruction_encoding:
   op_rt_offset_base:
     - LB
     - LBU
-    - LD
-    - LBU
-    - LDCz
     - LH
     - LHU
     - LW
@@ -62,7 +78,6 @@ instruction_encoding:
     - LWL
     - LWR
     - SB
-    - SH
     - SH
     - SW
     - SWCz
@@ -85,7 +100,6 @@ instruction_encoding:
     - ADD
     - ADDU
     - AND
-
     - NOR
     - OR
     - SLT
@@ -97,7 +111,6 @@ instruction_encoding:
     - ADDI
     - ADDIU
     - ANDI
-
     - ORI
     - SLTI
     - SLTIU
@@ -129,7 +142,6 @@ instruction_encoding:
     - CFCz
     - CTCz
     - MFCz
-    - MTCz
     - MTCz
   op_cc_offset_fp:
     - BCzT

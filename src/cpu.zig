@@ -2,6 +2,7 @@ const std = @import("std");
 const bus = @import("bus.zig");
 const decoder = @import("decoder.zig");
 const math = @import("math.zig");
+const op_writer = @import("disasm_op_writer.zig");
 
 const log = std.log.scoped(.cpu);
 const I = decoder.I;
@@ -67,6 +68,11 @@ pub const Cpu = struct {
         const i, const op = decoder.decode(i_raw);
 
         log.debug("decoded {}, {}", .{ op, i });
+
+        // const w = std.io.getStdOut().writer();
+        // op_writer.write_instruction(i, op, &w) catch {
+        // log.err("io error", .{});
+        // };
 
         switch (op) {
             .LUI => self.op_lui(i),

@@ -1,85 +1,212 @@
-ls:
-  - LB:
-  - LBU:
-  - LH:
-  - LHU:
-  - LW:
-  - LWL:
-  - LWR:
-  - SB:
-  - SH:
-  - SW:
-  - SWL:
-  - SWR:
+operand_encoding:
+  imm26:
+    imm: imm26
+  op_rd:
+    src: rd
+  op_rd_rs:
+    dst: rs
+    ret: rd
+  op_rd_rs_rt:
+    dst: rd
+    opl: rs
+    opr: rt
+  op_rd_rt_re:
+    dst: rd
+    opl: rt
+    opr: re
+  op_rs:
+    dst: rs
+  op_rs_imm:
+    dst: rs
+    offset: imm16
+  op_rs_rt:
+    opl: rs
+    opr: rt
+  op_rt_imm:
+    dst: rt
+    imm: imm16
+  op_rs_rt_imm:
+    opl: rs
+    opr: rt
+    offset: imm16
+  op_rt_offset_base:
+    base: rs
+    val: rt
+    offset: imm16
+  op_rt_rs_imm:
+    dst: rt
+    opl: rs
+    opr: imm16
+  op_sys_brk:
+    code: imm20
+  op_rt_fs:
+    dst: fs
+    src: rt
 
-alu:
-  - ADDI:
-  - ADDIU:
-  - SLTI:
-  - SLTIU:
-  - ANDI:
-  - ORI:
-  - XORI:
-  - LUI:
-  - ADD:
-  - ADDU:
-  - SUB:
-  - SUBU:
-  - SLT:
-  - SLTU:
-  - AND:
-  - OR:
-  - XOR:
-  - NOR:
-  - SLL:
-  - SRL:
-  - SRA:
-  - SLLV:
-  - SRLV:
-  - SRAV:
-  - MULT:
-  - MULTU:
-  - DIV:
-  - DIVU:
-  - MFHI:
-  - MTHI:
-  - MFLO:
-  - MTLO:
+instruction_encoding:
+  imm26:
+    - COPz
+    - J
+    - JAL
+    - JR
+  op_rt_offset_base:
+    - LB
+    - LBU
+    - LD
+    - LBU
+    - LDCz
+    - LH
+    - LHU
+    - LW
+    - LWCz
+    - LWL
+    - LWR
+    - SB
+    - SH
+    - SH
+    - SW
+    - SWCz
+    - SWL
+    - SWR
+  op_rt_imm:
+    - LUI
+  op_rd:
+    - MFHI
+    - MFLO
+  op_rs:
+    - MTHI
+    - MTLO
+  op_rs_rt:
+    - MULT
+    - MULTU
+    - DIV
+    - DIVU
+  op_rd_rs_rt:
+    - ADD
+    - ADDU
+    - AND
 
-branch:
-  - J:
-  - JAL:
-  - JR:
-  - JALR:
-  - BEQ:
-  - BNE:
-  - BLEZ:
-  - BGTZ:
-  - BLTZ:
-  - BGEZ:
-  - BLTZAL:
-  - BGEZAL:
+    - NOR
+    - OR
+    - SLT
+    - SLTU
+    - SUB
+    - SUBU
+    - XOR
+  op_rt_rs_imm:
+    - ADDI
+    - ADDIU
+    - ANDI
 
-special:
-  - SYSCALL:
-  - BREAK:
+    - ORI
+    - SLTI
+    - SLTIU
+    - XORI
+  op_rd_rt_re:
+    - SLL
+    - SRA
+    - SRL
+  op_rd_rs:
+    - JALR
+  op_rd_rt_rs:
+    - SLLV
+    - SRAV
+    - SRLV
+  op_sys_brk:
+    - BREAK
+    - SYSCALL
+  op_rs_rt_imm:
+    - BEQ
+    - BNE
+  op_rs_imm:
+    - BGEZ
+    - BGEZAL
+    - BGTZ
+    - BLEZ
+    - BLTZ
+    - BLTZAL
+  op_rt_fs:
+    - CFCz
+    - CTCz
+    - MFCz
+    - MTCz
+    - MTCz
+  op_cc_offset_fp:
+    - BCzT
+    - BCzF
 
-coprocessor:
-  - LWCz:
-  - SWCz:
-  - MTCz:
-  - MFCz:
-  - CTCz:
-  - CFCz:
-  - COPz:
-  - BCzT:
-  - BCzF:
 
-cp0:
-  - MTC0:
-  - MFC0:
-  - TLBR:
-  - TLBWI:
-  - TLBWR:
-  - TLBP:
-  - RFE:
+
+instructions:
+  - LB
+  - LBU
+  - LH
+  - LHU
+  - LW
+  - LWL
+  - LWR
+  - SB
+  - SH
+  - SW
+  - SWL
+  - SWR
+  - ADDI
+  - ADDIU
+  - SLTI
+  - SLTIU
+  - ANDI
+  - ORI
+  - XORI
+  - LUI
+  - ADD
+  - ADDU
+  - SUB
+  - SUBU
+  - SLT
+  - SLTU
+  - AND
+  - OR
+  - XOR
+  - NOR
+  - SLL
+  - SRL
+  - SRA
+  - SLLV
+  - SRLV
+  - SRAV
+  - MULT
+  - MULTU
+  - DIV
+  - DIVU
+  - MFHI
+  - MTHI
+  - MFLO
+  - MTLO
+  - J
+  - JAL
+  - JR
+  - JALR
+  - BEQ
+  - BNE
+  - BLEZ
+  - BGTZ
+  - BLTZ
+  - BGEZ
+  - BLTZAL
+  - BGEZAL
+  - SYSCALL
+  - BREAK
+  - LWCz
+  - SWCz
+  - MTCz
+  - MFCz
+  - CTCz
+  - CFCz
+  - COPz
+  - BCzT
+  - BCzF
+  - TLBR
+  - TLBWI
+  - TLBWR
+  - TLBP
+  - RFE

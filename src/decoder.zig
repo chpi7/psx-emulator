@@ -61,17 +61,8 @@ fn get_type(i: I, op: mn) Type {
         return Type.I;
     }
 
-    // For subprocessor ones, look at the final opcode / mnemonic instead:
     return switch (op) {
-        mn.MFC0, mn.MFC1, mn.MFC2, mn.MFC3 => Type.R,
-        mn.CFC0, mn.CFC1, mn.CFC2, mn.CFC3 => Type.R,
-        mn.MTC0, mn.MTC1, mn.MTC2, mn.MTC3 => Type.R,
-        mn.CTC0, mn.CTC1, mn.CTC2, mn.CTC3 => Type.R,
-        mn.LWC0, mn.LWC1, mn.LWC2, mn.LWC3 => Type.R,
-        mn.SWC0, mn.SWC1, mn.SWC2, mn.SWC3 => Type.R,
-        mn.BC0F, mn.BC1F, mn.BC2F, mn.BC3F => Type.I,
-        mn.BC0T, mn.BC1T, mn.BC2T, mn.BC3T => Type.I,
-        // This isn't fully correct, there is some COPn ones with imm25 encoding. TODO: sort this out later
+        mn.MFCz, mn.CFCz, mn.MTCz, mn.CTCz, mn.LWCz, mn.SWCz => Type.R,
         else => Type.I,
     };
 }
@@ -90,34 +81,18 @@ fn get_op_branch(i: I) mn {
 }
 
 fn get_op_copz(i: I) mn {
-    // last 2 bits in some instructions incode the coprocessor id.
-    const nn: u2 = @truncate(i.R.op);
-
-    std.debug.assert(@as(mn, @enumFromInt(@intFromEnum(mn.MFC0) + 1)) == mn.MFC1);
-    std.debug.assert(@as(mn, @enumFromInt(@intFromEnum(mn.MFC0) + 2)) == mn.MFC2);
-    std.debug.assert(@as(mn, @enumFromInt(@intFromEnum(mn.MFC0) + 3)) == mn.MFC3);
-
-    std.debug.assert(@as(mn, @enumFromInt(@intFromEnum(mn.BC0T) + 2)) == mn.BC1T);
-    std.debug.assert(@as(mn, @enumFromInt(@intFromEnum(mn.BC1T) + 2)) == mn.BC2T);
-    std.debug.assert(@as(mn, @enumFromInt(@intFromEnum(mn.BC2T) + 2)) == mn.BC3T);
-    std.debug.assert(@as(mn, @enumFromInt(@intFromEnum(mn.BC0F) + 2)) == mn.BC1F);
-    std.debug.assert(@as(mn, @enumFromInt(@intFromEnum(mn.BC1F) + 2)) == mn.BC2F);
-    std.debug.assert(@as(mn, @enumFromInt(@intFromEnum(mn.BC2F) + 2)) == mn.BC3F);
-
     std.debug.assert((i.R.op & 0b110000) == 0b010000);
-
     return switch (i.R.rs) {
-        0b00000 => @enumFromInt(@intFromEnum(mn.MFC0) + nn),
-        0b00010 => @enumFromInt(@intFromEnum(mn.CFC0) + nn),
-        0b00100 => @enumFromInt(@intFromEnum(mn.MTC0) + nn),
-        0b00110 => @enumFromInt(@intFromEnum(mn.CTC0) + nn),
+        0b00000 => mn.MFCz,
+        0b00010 => mn.CFCz,
+        0b00100 => mn.MTCz,
+        0b00110 => mn.CTCz,
         0b01000 => switch (i.R.rt) {
-            // These are interleaved because of alphanumeric sorting :)
-            0 => @enumFromInt(@intFromEnum(mn.BC0F) + 2 * nn),
-            1 => @enumFromInt(@intFromEnum(mn.BC0T) + 2 * nn),
+            0 => mn.BCzF,
+            1 => mn.BCzT,
             else => mn.ILLEGAL,
         },
-        0b10000 => @enumFromInt(@intFromEnum(mn.COP0) + nn),
+        0b10000 => mn.COPz,
         else => mn.ILLEGAL,
     };
 }

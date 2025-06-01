@@ -68,8 +68,6 @@ MNEMONICS = [
   "COPz",
   "BCzT",
   "BCzF",
-  "MTC0",
-  "MFC0",
   "TLBR",
   "TLBWI",
   "TLBWR",
@@ -121,7 +119,7 @@ def expand_mnemonics(input: list) -> list:
             result.append(m)
     return list(set(result))
 
-MNEMONICS_EXPANDED = expand_mnemonics(MNEMONICS)
+MNEMONICS_EXPANDED = MNEMONICS # expand_mnemonics(MNEMONICS)
 
 def emit_enum(name: str, defs: dict | list, type: str = "u8") -> str:
 

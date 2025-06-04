@@ -56,8 +56,10 @@ fn write_op_rt_rs_imm(i: I, op: Op, w: anytype) !void {
     try w.print("{s}  $r{d}, $r{d}, {x}", .{ @tagName(op), i.I.rt, i.I.rs, i.I.imm });
 }
 
-fn write_op_sys_brk(_: I, op: Op, w: anytype) !void {
-    try w.print("{s}  ", .{@tagName(op)});
+fn write_op_sys_brk(i: I, op: Op, w: anytype) !void {
+    // bits 6 - 25 are treated as a "comment"
+    const comment: u20 = @truncate(@as(u32, @bitCast(i.R)) >> 6);
+    try w.print("{s}  {x}", .{ @tagName(op), comment });
 }
 
 fn write_op_rt_fs(i: I, op: Op, w: anytype) !void {

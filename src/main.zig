@@ -15,13 +15,17 @@ pub fn main() !void {
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
-    var bios = try lib.bios.Bios.load("./bios/scph-1002-v20-eu.bin", allocator);
-    var bus = lib.bus.Bus{ .bios = &bios };
-    var cpu: lib.cpu.Cpu = .{ .bus = &bus };
+    if (true) {
+        try lib.disasm.disassemble_bios();
+    } else {
+        var bios = try lib.bios.Bios.load("./bios/scph-1002-v20-eu.bin", allocator);
+        var bus = lib.bus.Bus{ .bios = &bios };
+        var cpu: lib.cpu.Cpu = .{ .bus = &bus };
 
-    cpu.reset();
+        cpu.reset();
 
-    while (!cpu.halted) {
-        cpu.step();
+        while (!cpu.halted) {
+            cpu.step();
+        }
     }
 }

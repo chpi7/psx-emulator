@@ -42,6 +42,32 @@ pub const primary = enum(u6) {
     XORI = 14,
 };
 
+pub fn is_valid_primary(v: u6) bool {
+    return switch (v) {
+        20 => false,
+        21 => false,
+        22 => false,
+        23 => false,
+        24 => false,
+        25 => false,
+        26 => false,
+        27 => false,
+        28 => false,
+        29 => false,
+        30 => false,
+        31 => false,
+        39 => false,
+        44 => false,
+        45 => false,
+        47 => false,
+        52 => false,
+        53 => false,
+        54 => false,
+        55 => false,
+        else => v <= 59,
+    };
+}
+
 /// What is encoded in funct in R type instructions.
 pub const subop = enum(u6) {
     ADD = 32,
@@ -73,6 +99,28 @@ pub const subop = enum(u6) {
     SYSCALL = 12,
     XOR = 38,
 };
+
+pub fn is_valid_subop(v: u6) bool {
+    return switch (v) {
+        1 => false,
+        5 => false,
+        40 => false,
+        41 => false,
+        10 => false,
+        11 => false,
+        14 => false,
+        15 => false,
+        20 => false,
+        21 => false,
+        22 => false,
+        23 => false,
+        28 => false,
+        29 => false,
+        30 => false,
+        31 => false,
+        else => v <= 43,
+    };
+}
 
 /// The mnemonics for all operations with coprocessor ids expanded. (This doesn't correspond to anything in the ISA encoding!). Coprocessor ones MUST be sequential, otherwise the decoder will break!!!
 pub const op = enum(u32) {

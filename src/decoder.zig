@@ -47,9 +47,24 @@ pub const I = union(Type) {
     }
 };
 
+fn get_type_special(i: I) Type {
+    const subop: u6 = @truncate(@as(u32, @bitCast(i.R)));
+    if (subop == @intFromEnum(sop.JR)) {
+        return Type.J;
+    } else {
+        return Type.R;
+    }
+}
+
 fn get_type(i: I, op: mn) Type {
+    if (!opcodes.is_valid_primary(i.R.op)) {
+        // Return anything just so we can pipe it through to the disassembler.
+        // Use J because that doesn't have anything else to decode.
+        return Type.J;
+    }
+
     switch (@as(opcodes.primary, @enumFromInt(i.R.op))) {
-        pop.SPECIAL => return Type.R,
+        pop.SPECIAL => return get_type_special(i),
         pop.BcondZ => return Type.I,
         pop.JAL, pop.J => return Type.J,
         else => {},
@@ -62,6 +77,7 @@ fn get_type(i: I, op: mn) Type {
     }
 
     return switch (op) {
+        mn.COPz => Type.J, // it isn't really a "j"ump instruction but also has the 26bit imm in the same place.
         mn.MFCz, mn.CFCz, mn.MTCz, mn.CTCz, mn.LWCz, mn.SWCz => Type.R,
         else => Type.I,
     };

@@ -107,6 +107,24 @@ def convert_opcodes(s: str) -> dict:
 
     return result
 
+def make_is_valid_enum(enum_name: str, dtype: str, d: dict) -> str:
+    max_value = 0
+    for value in d.keys():
+        max_value = max(max_value, value)
+
+    unused_values = set(range(max_value + 1)) - set(d.keys())
+
+    lines = [f"pub fn is_valid_{enum_name}(v: {dtype}) bool {{"]
+    lines += ["return switch (v) {"]
+    for v in unused_values:
+        lines += [f"{v} => false,"]
+    lines += [f"else => v <= {max_value},"]
+    lines += ["};"]
+    lines += ["}"]
+
+    return "\n".join(lines)
+
+
 OPCODES_PRI = convert_opcodes(OPCODES_PRI_CSV)
 OPCODES_SEC = convert_opcodes(OPCODES_SEC_CSV)
 
@@ -119,7 +137,7 @@ def expand_mnemonics(input: list) -> list:
             result.append(m)
     return list(set(result))
 
-MNEMONICS_EXPANDED = MNEMONICS # expand_mnemonics(MNEMONICS)
+MNEMONICS_EXPANDED = MNEMONICS
 
 def emit_enum(name: str, defs: dict | list, type: str = "u8") -> str:
 
@@ -127,7 +145,13 @@ def emit_enum(name: str, defs: dict | list, type: str = "u8") -> str:
         tmp = sorted([f'{mn} = {op}' for op, mn in defs.items()])
     else:
         tmp = sorted(defs)
-    return f"pub const {name} = enum({type}) {{ {', '.join(tmp)}, }};"
+    definition = f"pub const {name} = enum({type}) {{ {', '.join(tmp)}, }};"
+
+    if isinstance(defs, dict):
+        is_valid = make_is_valid_enum(name, type, defs)
+        definition += "\n\n" + is_valid
+
+    return definition
 
 
 def op_to_mnemonic(fname: str, opcodes: dict) -> str:

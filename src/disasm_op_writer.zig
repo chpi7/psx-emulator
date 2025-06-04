@@ -4,80 +4,87 @@ const std = @import("std");
 const I = decoder.I;
 const Op = decoder.opcodes.op;
 
+// 7 == strlen("ILLEGAL")
+const OP_FMT = "{s: <7}   ";
+
 fn write_imm26(i: I, op: Op, w: anytype) !void {
-    try w.print("{s}  {x}", .{ @tagName(op), i.J.target });
+    try w.print(OP_FMT ++ "{x}", .{ @tagName(op), i.J.target });
 }
 
 fn write_op_rd(i: I, op: Op, w: anytype) !void {
-    try w.print("{s}  $r{d}", .{ @tagName(op), i.R.rd });
+    try w.print(OP_FMT ++ "$r{d}", .{ @tagName(op), i.R.rd });
 }
 
 fn write_op_rd_rs(i: I, op: Op, w: anytype) !void {
-    try w.print("{s}  $r{d}, $r{d}", .{ @tagName(op), i.R.rd, i.R.rs });
+    try w.print(OP_FMT ++ "$r{d}, $r{d}", .{ @tagName(op), i.R.rd, i.R.rs });
 }
 
 fn write_op_rd_rs_rt(i: I, op: Op, w: anytype) !void {
-    try w.print("{s}  $r{d}, $r{d}, $r{d}", .{ @tagName(op), i.R.rd, i.R.rs, i.R.rt });
+    try w.print(OP_FMT ++ "$r{d}, $r{d}, $r{d}", .{ @tagName(op), i.R.rd, i.R.rs, i.R.rt });
 }
 
 fn write_op_rd_rt_re(i: I, op: Op, w: anytype) !void {
-    try w.print("{s}  $r{d}, $r{d}, $r{d}", .{ @tagName(op), i.R.rd, i.R.rt, i.R.re });
+    try w.print(OP_FMT ++ "$r{d}, $r{d}, $r{d}", .{ @tagName(op), i.R.rd, i.R.rt, i.R.re });
 }
 
 fn write_op_rd_rt_rs(i: I, op: Op, w: anytype) !void {
-    try w.print("{s}  $r{d}, $r{d}, $r{d}", .{ @tagName(op), i.R.rd, i.R.rt, i.R.rs });
+    try w.print(OP_FMT ++ "$r{d}, $r{d}, $r{d}", .{ @tagName(op), i.R.rd, i.R.rt, i.R.rs });
 }
 
 fn write_op_rs(i: I, op: Op, w: anytype) !void {
-    try w.print("{s}  $r{d}", .{ @tagName(op), i.R.rs });
+    try w.print(OP_FMT ++ "$r{d}", .{ @tagName(op), i.R.rs });
 }
 
 fn write_op_rs_imm(i: I, op: Op, w: anytype) !void {
-    try w.print("{s}  $r{d}, {x}", .{ @tagName(op), i.I.rs, i.I.imm });
+    try w.print(OP_FMT ++ "$r{d}, {x}", .{ @tagName(op), i.I.rs, i.I.imm });
 }
 
 fn write_op_rs_rt(i: I, op: Op, w: anytype) !void {
-    try w.print("{s}  $r{d}, $r{d}", .{ @tagName(op), i.R.rs, i.R.rt });
+    try w.print(OP_FMT ++ "$r{d}, $r{d}", .{ @tagName(op), i.R.rs, i.R.rt });
 }
 
 fn write_op_rt_imm(i: I, op: Op, w: anytype) !void {
-    try w.print("{s}  $r{d}, {x}", .{ @tagName(op), i.I.rt, i.I.imm });
+    try w.print(OP_FMT ++ "$r{d}, {x}", .{ @tagName(op), i.I.rt, i.I.imm });
 }
 
 fn write_op_rs_rt_imm(i: I, op: Op, w: anytype) !void {
-    try w.print("{s}  $r{d}, $r{d}, {x}", .{ @tagName(op), i.I.rs, i.I.rt, i.I.imm });
+    try w.print(OP_FMT ++ "$r{d}, $r{d}, {x}", .{ @tagName(op), i.I.rs, i.I.rt, i.I.imm });
 }
 
 fn write_op_rt_offset_base(i: I, op: Op, w: anytype) !void {
-    try w.print("{s}  $r{d}, {x}, $r{d}", .{ @tagName(op), i.I.rt, i.I.imm, i.I.rs });
+    try w.print(OP_FMT ++ "$r{d}, {x}, $r{d}", .{ @tagName(op), i.I.rt, i.I.imm, i.I.rs });
 }
 
 fn write_op_rt_rs_imm(i: I, op: Op, w: anytype) !void {
-    try w.print("{s}  $r{d}, $r{d}, {x}", .{ @tagName(op), i.I.rt, i.I.rs, i.I.imm });
+    try w.print(OP_FMT ++ "$r{d}, $r{d}, {x}", .{ @tagName(op), i.I.rt, i.I.rs, i.I.imm });
 }
 
 fn write_op_sys_brk(i: I, op: Op, w: anytype) !void {
     // bits 6 - 25 are treated as a "comment"
     const comment: u20 = @truncate(@as(u32, @bitCast(i.R)) >> 6);
-    try w.print("{s}  {x}", .{ @tagName(op), comment });
+    try w.print(OP_FMT ++ "{x}", .{ @tagName(op), comment });
 }
 
 fn write_op_rt_fs(i: I, op: Op, w: anytype) !void {
-    try w.print("{s}  $r{d}, <fs>", .{ @tagName(op), i.R.rt });
+    try w.print(OP_FMT ++ "$r{d}, <fs>", .{ @tagName(op), i.R.rt });
 }
 
 fn write_op_cc_offset_fp(_: I, op: Op, w: anytype) !void {
-    try w.print("{s}  <None>, <offset>, <fp>", .{@tagName(op)});
+    try w.print(OP_FMT ++ "<None>, <offset>, <fp>", .{@tagName(op)});
 }
 
 fn write_unknown(_: I, op: Op, w: anytype) !void {
-    try w.print("{s}  <unknown>", .{@tagName(op)});
+    try w.print(OP_FMT ++ "<unknown>", .{@tagName(op)});
 }
 
 pub fn write_instruction(i: I, op: Op, w: anytype) !void {
     _ = try switch (op) {
         .COPz => write_imm26(i, op, w),
-        .J => write_imm26(i, op, w),
+        .J => {
+            try write_imm26(i, op, w);
+            const target_general = @as(u28, i.J.target) << 2;
+            try w.print("     --> {x:08}", .{target_general});
+        },
         .JAL => write_imm26(i, op, w),
         .JR => write_imm26(i, op, w),
         .LB => write_op_rt_offset_base(i, op, w),

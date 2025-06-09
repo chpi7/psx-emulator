@@ -1,6 +1,7 @@
 const std = @import("std");
 const bios = @import("bios.zig");
 const math = @import("math.zig");
+const builtin = @import("builtin");
 
 const log = std.log.scoped(.bus);
 
@@ -84,8 +85,19 @@ pub const Bus = struct {
         return res;
     }
 
-    fn ignore_write(addr: u32, desc: []const u8) void {
-        log.debug("ignore write {x} {s}", .{ addr, desc });
+    fn ignore_write_expect(addr: u32, value: u32, comptime desc: []const u8, comptime expect: []const u32) void {
+        // Don't do expensive checks in non-debug mode.
+        comptime if (builtin.mode != std.builtin.OptimizeMode.Debug) {
+            return;
+        };
+
+        var found = false;
+        for (expect) |e| {
+            found = found or (e == value);
+        }
+        if (!found) {
+            log.debug("ignore write {x} {s}, unexpected value {x}", .{ addr, desc, value });
+        }
     }
 
     pub fn write32(self: *@This(), a: u32, v: u32) void {
@@ -106,8 +118,9 @@ pub const Bus = struct {
                     // They are always 0x1f000000 and 0x1f802000 on the PS. Don't allow remapping.
                     0x1f801000 => unreachable,
                     0x1f801004 => unreachable,
-                    MM.IO_BIOS_ROM => ignore_write(a, "BIOS_ROM"),
-                    MM.IO_RAM_SIZE => ignore_write(a, "RAM_SIZE"),
+                    MM.IO_BIOS_ROM => ignore_write_expect(a, v, "BIOS_ROM", &[_]u32{0x13243f}),
+                    MM.IO_RAM_SIZE => ignore_write_expect(a, v, "RAM_SIZE", &[_]u32{0xb88}),
+                    0x1f801020 => ignore_write_expect(a, v, "COM_DELAY", &[_]u32{ 0x31125, 0x132C, 0x1325 }),
                     else => unreachable,
                 }
             },

@@ -88,6 +88,7 @@ pub const Cpu = struct {
         log.debug("{s}", .{&str_buf});
 
         switch (op) {
+            .ADDIU => self.op_addiu(i),
             .LUI => self.op_lui(i),
             .ORI => self.op_ori(i),
             .SW => self.op_sw(i),
@@ -130,6 +131,11 @@ pub const Cpu = struct {
         const dst_addr = self.rf.read(i.I.rs) +% sign_ext(i.I.imm);
         const v = self.rf.read(i.I.rt);
         self.bus.write32(dst_addr, v);
+    }
+
+    fn op_addiu(self: *@This(), i: I) void {
+        const res = self.rf.read(i.I.rs) +% i.I.imm;
+        self.rf.write(i.I.rt, res);
     }
 
     fn op_j(self: *@This(), i: I) void {

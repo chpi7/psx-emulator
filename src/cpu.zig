@@ -73,10 +73,7 @@ pub const Cpu = struct {
         self.log_state();
     }
 
-    pub fn step(self: *Cpu) void {
-        const i, const op = decoder.decode(self.next_instruction);
-        self.next_instruction = self.bus.read32(self.rf.pc);
-
+    fn log_current_op(i: I, op: decoder.opcodes.op) void {
         var str_buf: [256]u8 = .{0} ** 256;
         var fbs = std.io.fixedBufferStream(str_buf[0..]);
         var w = fbs.writer();
@@ -90,6 +87,14 @@ pub const Cpu = struct {
         } else {
             log.debug("{s}", .{&str_buf});
         }
+    }
+
+    pub fn step(self: *Cpu) void {
+        const i, const op = decoder.decode(self.next_instruction);
+        self.next_instruction = self.bus.read32(self.rf.pc);
+        self.rf.pc += 4;
+
+        Cpu.log_current_op(i, op);
 
         switch (op) {
             .ADDIU => self.op_addiu(i),
@@ -104,10 +109,8 @@ pub const Cpu = struct {
             },
         }
 
-        self.rf.pc += 4;
-
         // if not NOP, print the state
-        if (i.value != 0)
+        if (i.value != 0 and false)
             self.log_state();
     }
 

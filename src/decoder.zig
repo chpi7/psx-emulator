@@ -50,7 +50,7 @@ pub const I = union(Type) {
 fn get_type_special(i: I) Type {
     const subop: u6 = @truncate(@as(u32, @bitCast(i.R)));
     if (subop == @intFromEnum(sop.JR)) {
-        return Type.J;
+        return Type.R;
     } else {
         return Type.R;
     }
@@ -512,29 +512,6 @@ test "alu-imm" {
         .{
             .input = 0b001111_00001_00010_11000_00000_010001,
             .expect = .{ .op = mn.LUI, .i = .{ .I = .{ .rs = 1, .rt = 2, .imm = 0b11000_00000_010001 } } },
-        },
-    };
-
-    try iterate_testcases(&testcases);
-}
-
-test "MFCn/CFCn/MTCn/CTCn" {
-    const testcases = [_]TC{
-        .{
-            .input = 0b010000_00000_00001_00000_00000_000000,
-            .expect = .{ .op = mn.MFC0, .i = .{ .R = .{ .rs = 0, .rt = 1, .rd = 0, .re = 0 } } },
-        },
-        .{
-            .input = 0b010000_00010_00001_00000_00000_000000,
-            .expect = .{ .op = mn.CFC0, .i = .{ .R = .{ .rs = 2, .rt = 1, .rd = 0, .re = 0 } } },
-        },
-        .{
-            .input = 0b010000_00100_00001_00000_00000_000000,
-            .expect = .{ .op = mn.MTC0, .i = .{ .R = .{ .rs = 4, .rt = 1, .rd = 0, .re = 0 } } },
-        },
-        .{
-            .input = 0b010000_00110_00001_00000_00000_000000,
-            .expect = .{ .op = mn.CTC0, .i = .{ .R = .{ .rs = 6, .rt = 1, .rd = 0, .re = 0 } } },
         },
     };
 

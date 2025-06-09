@@ -86,7 +86,7 @@ pub fn write_instruction(i: I, op: Op, w: anytype) !void {
             try w.print("     --> {x:08}", .{target_general});
         },
         .JAL => write_imm26(i, op, w),
-        .JR => write_imm26(i, op, w),
+        .JR => write_op_rs(i, op, w),
         .LB => write_op_rt_offset_base(i, op, w),
         .LBU => write_op_rt_offset_base(i, op, w),
         .LH => write_op_rt_offset_base(i, op, w),

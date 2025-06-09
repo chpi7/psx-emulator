@@ -19,6 +19,12 @@ const I_I = packed struct(u32) {
 const I_J = packed struct(u32) {
     target: u26 = 0,
     op: u6 = 0,
+
+    pub fn format(self: *const @This(), comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
+        _ = fmt;
+        _ = options;
+        try writer.print("{{ target = {x} }}", .{self.target});
+    }
 };
 
 const I_R = packed struct(u32) {

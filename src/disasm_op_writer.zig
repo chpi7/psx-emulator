@@ -52,7 +52,7 @@ fn write_op_rs_rt_imm(i: I, op: Op, w: anytype) !void {
 }
 
 fn write_op_rt_offset_base(i: I, op: Op, w: anytype) !void {
-    try w.print(OP_FMT ++ "$r{d}, {x}, $r{d}", .{ @tagName(op), i.rt(), i.imm16(), i.rs() });
+    try w.print(OP_FMT ++ "$r{d}, {x}($r{d})", .{ @tagName(op), i.rt(), @as(i16, @bitCast(i.imm16())), i.rs() });
 }
 
 fn write_op_rt_rs_imm(i: I, op: Op, w: anytype) !void {

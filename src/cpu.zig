@@ -85,7 +85,11 @@ pub const Cpu = struct {
             log.err("io error", .{});
         };
 
-        log.debug("{s}", .{&str_buf});
+        if (i.value == 0) {
+            log.debug("(NOP)", .{});
+        } else {
+            log.debug("{s}", .{&str_buf});
+        }
 
         switch (op) {
             .ADDIU => self.op_addiu(i),
@@ -102,7 +106,9 @@ pub const Cpu = struct {
 
         self.rf.pc += 4;
 
-        // self.log_state();
+        // if not NOP, print the state
+        if (i.value != 0)
+            self.log_state();
     }
 
     inline fn branch_to(self: *@This(), pc: u32) void {
@@ -117,8 +123,9 @@ pub const Cpu = struct {
     }
 
     fn op_ori(self: *@This(), i: I) void {
-        const imm32 = zero_ext(i.rt());
-        self.rf.write(i.rt(), imm32 | self.rf.read(i.rs()));
+        const imm32 = zero_ext(i.imm16());
+        const before = self.rf.read(i.rs());
+        self.rf.write(i.rt(), imm32 | before);
     }
 
     fn op_sll(self: *@This(), i: I) void {

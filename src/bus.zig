@@ -45,7 +45,10 @@ const MM = struct {
     pub const bios: Entry = .{ .reg = .BIOS, .seg = .KSEG1, .start = 0xbfc00000, .size = 512 * 1024 };
 
     // KUSEG Mappings:
-    pub const io_u: Entry = .{ .reg = .IO, .seg = .KSEG1, .start = 0x1f801000, .size = 8 * 1024 };
+    pub const io_u: Entry = .{ .reg = .IO, .seg = .KUSEG, .start = 0x1f801000, .size = 8 * 1024 };
+
+    pub const IO_BIOS_ROM = 0x1f801010;
+    pub const IO_RAM_SIZE = 0x1f801060;
 };
 
 inline fn bitmask(comptime n: u32) u32 {
@@ -72,15 +75,16 @@ pub const Bus = struct {
             MM.bios.start...MM.bios.end() => {
                 res = self.bios.read_u32(a - MM.bios.start);
             },
-            else => {
-                log.warn("unmapped memory (read, address = {x})", .{a});
-                res = 0xbeefbeef;
-            },
+            else => unreachable,
         }
 
         log.debug("read [{x}] -> {x}", .{ a, res });
 
         return res;
+    }
+
+    fn ignore_write(addr: u32, desc: []const u8) void {
+        log.debug("ignore write {x} {s}", .{ addr, desc });
     }
 
     pub fn write32(self: *@This(), a: u32, v: u32) void {
@@ -101,12 +105,12 @@ pub const Bus = struct {
                     // They are always 0x1f000000 and 0x1f802000 on the PS. Don't allow remapping.
                     0x1f801000 => unreachable,
                     0x1f801004 => unreachable,
-                    else => log.debug("write KUSEG IO: TODO", .{}),
+                    MM.IO_BIOS_ROM => ignore_write(a, "BIOS_ROM"),
+                    MM.IO_RAM_SIZE => ignore_write(a, "RAM_SIZE"),
+                    else => unreachable,
                 }
             },
-            else => {
-                log.warn("unmapped memory (write, address = {x})", .{a});
-            },
+            else => unreachable,
         }
     }
 

@@ -67,12 +67,19 @@ pub const Cpu = struct {
         const i_raw = self.bus.read32(self.rf.pc);
         const i, const op = decoder.decode(i_raw);
 
-        log.debug("decoded {}, {}", .{ op, i });
-
+        var str_buf: [256]u8 = .{0} ** 256;
+        var fbs = std.io.fixedBufferStream(str_buf[0..]);
+        var w = fbs.writer();
         // const w = std.io.getStdOut().writer();
-        // op_writer.write_instruction(i, op, &w) catch {
-        // log.err("io error", .{});
-        // };
+        op_writer.write_instruction(i, op, &w, false) catch {
+            log.err("io error", .{});
+        };
+
+        log.debug("decoded {s}", .{&str_buf});
+
+        // Increment PC before because ops such as J will require the upper bits of the delay slot of the
+        // current op (aka. the next op).
+        self.rf.pc += 4;
 
         switch (op) {
             .LUI => self.op_lui(i),
@@ -86,9 +93,13 @@ pub const Cpu = struct {
             },
         }
 
-        self.rf.pc += 4;
-
         // self.log_state();
+    }
+
+    inline fn branch_to(self: *@This(), pc: u32) void {
+        log.debug("branch to {x}", .{pc});
+        self.rf.pc = pc;
+        self.did_branch = true;
     }
 
     // ----------------------- Instructions -----------------------
@@ -117,6 +128,6 @@ pub const Cpu = struct {
     fn op_j(self: *@This(), i: I) void {
         const instr_index = @as(u28, @intCast(i.J.target)) << 2;
         const new_pc = (self.rf.pc & math.bitmask_rnc(u32, 28, 4)) | instr_index;
-        self.rf.pc = new_pc;
+        self.branch_to(new_pc);
     }
 };

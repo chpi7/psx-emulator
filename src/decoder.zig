@@ -14,6 +14,12 @@ const I_I = packed struct(u32) {
     rt: u5 = 0,
     rs: u5 = 0,
     op: u6 = 0,
+
+    pub fn format(self: *const @This(), comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
+        _ = fmt;
+        _ = options;
+        try writer.print("{{ rs={} rt={} imm={x} }}", .{ self.rs, self.rt, self.imm });
+    }
 };
 
 const I_J = packed struct(u32) {
@@ -34,6 +40,12 @@ const I_R = packed struct(u32) {
     rt: u5 = 0,
     rs: u5 = 0,
     op: u6 = 0,
+
+    pub fn format(self: *const @This(), comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
+        _ = fmt;
+        _ = options;
+        try writer.print("{{ rs={} rt={} rd={} re={} }}", .{ self.rs, self.rt, self.rd, self.re });
+    }
 };
 
 pub const I = union(Type) {

@@ -75,7 +75,7 @@ pub const Bus = struct {
             },
         }
 
-        log.debug("read {x} = {x}", .{ a, res });
+        log.debug("read [{x}] -> {x}", .{ a, res });
 
         return res;
     }
@@ -86,7 +86,7 @@ pub const Bus = struct {
             self.signal_exception(.Address);
         }
 
-        log.debug("write {x} := {x}", .{ a, v });
+        log.debug("write [{x}] = {x}", .{ a, v });
         switch (a) {
             MM.bios.start...MM.bios.end() => {
                 // BIOS ROM is read only: (https://github.com/simias/psx-hardware-tests/blob/master/tests/bios_write/main.s)

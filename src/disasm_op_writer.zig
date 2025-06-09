@@ -77,7 +77,7 @@ fn write_unknown(_: I, op: Op, w: anytype) !void {
     try w.print(OP_FMT ++ "<unknown>", .{@tagName(op)});
 }
 
-pub fn write_instruction(i: I, op: Op, w: anytype) !void {
+pub fn write_instruction(i: I, op: Op, w: anytype, lb: bool) !void {
     _ = try switch (op) {
         .COPz => write_imm26(i, op, w),
         .J => {
@@ -152,5 +152,6 @@ pub fn write_instruction(i: I, op: Op, w: anytype) !void {
         .BCzF => write_op_cc_offset_fp(i, op, w),
         else => write_unknown(i, op, w),
     };
-    try w.print("\n", .{});
+    if (lb)
+        try w.print("\n", .{});
 }

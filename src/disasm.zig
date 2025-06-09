@@ -50,7 +50,7 @@ pub fn disassemble_bios() !void {
 
         try w.print("  ", .{});
 
-        op_writer.write_instruction(i, op, &w) catch {
+        op_writer.write_instruction(i, op, &w, true) catch {
             log.err("io error", .{});
         };
     }

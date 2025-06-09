@@ -15,10 +15,11 @@ pub fn main() !void {
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
-    if (true) {
+    if (false) {
         try lib.disasm.disassemble_bios();
     } else {
-        var bios = try lib.bios.Bios.load("./bios/scph-1002-v20-eu.bin", allocator);
+        // var bios = try lib.bios.Bios.load("./bios/scph-1002-v20-eu.bin", allocator);
+        var bios = try lib.bios.Bios.load("./bios/scph-1001-v22-us.bin", allocator);
         var bus = lib.bus.Bus{ .bios = &bios };
         var cpu: lib.cpu.Cpu = .{ .bus = &bus };
 

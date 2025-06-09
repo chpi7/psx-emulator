@@ -45,10 +45,20 @@ const RegisterFile = struct {
     }
 };
 
+const Instruction = struct {
+    op: decoder.opcodes.op,
+    i: I,
+};
+
 pub const Cpu = struct {
     halted: bool = false,
     rf: RegisterFile = .{},
     bus: *bus.Bus,
+    // Used to emulate branch delay slots:
+    // step 0: next = branch, execute = nop
+    // step 1: next = other, execute = branch -> set pc
+    // step 2: next = target, execute = target
+    next_instruction: u32 = 0,
 
     pub fn log_state(self: *Cpu) void {
         log.debug("{s}", .{self.rf});
@@ -64,8 +74,8 @@ pub const Cpu = struct {
     }
 
     pub fn step(self: *Cpu) void {
-        const i_raw = self.bus.read32(self.rf.pc);
-        const i, const op = decoder.decode(i_raw);
+        const i, const op = decoder.decode(self.next_instruction);
+        self.next_instruction = self.bus.read32(self.rf.pc);
 
         var str_buf: [256]u8 = .{0} ** 256;
         var fbs = std.io.fixedBufferStream(str_buf[0..]);
@@ -75,11 +85,7 @@ pub const Cpu = struct {
             log.err("io error", .{});
         };
 
-        log.debug("decoded {s}", .{&str_buf});
-
-        // Increment PC before because ops such as J will require the upper bits of the delay slot of the
-        // current op (aka. the next op).
-        self.rf.pc += 4;
+        log.debug("{s}", .{&str_buf});
 
         switch (op) {
             .LUI => self.op_lui(i),
@@ -93,13 +99,14 @@ pub const Cpu = struct {
             },
         }
 
+        self.rf.pc += 4;
+
         // self.log_state();
     }
 
     inline fn branch_to(self: *@This(), pc: u32) void {
         log.debug("branch to {x}", .{pc});
         self.rf.pc = pc;
-        self.did_branch = true;
     }
 
     // ----------------------- Instructions -----------------------

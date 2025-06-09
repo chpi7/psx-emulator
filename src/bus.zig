@@ -41,8 +41,11 @@ const MM = struct {
     // KSEG1 Mappings:
     pub const ram: Entry = .{ .reg = .RAM, .seg = .KSEG1, .start = 0xa0000000, .size = 2048 * 1024 };
     pub const ex1: Entry = .{ .reg = .EX1, .seg = .KSEG1, .start = 0xbf000000, .size = 8192 * 1024 };
-    pub const io: Entry = .{ .reg = .IO, .seg = .KSEG1, .start = 0xbf801000, .size = 8 * 1024 };
+    // pub const io: Entry = .{ .reg = .IO, .seg = .KSEG1, .start = 0xbf801000, .size = 8 * 1024 };
     pub const bios: Entry = .{ .reg = .BIOS, .seg = .KSEG1, .start = 0xbfc00000, .size = 512 * 1024 };
+
+    // KUSEG Mappings:
+    pub const io_u: Entry = .{ .reg = .IO, .seg = .KSEG1, .start = 0x1f801000, .size = 8 * 1024 };
 };
 
 inline fn bitmask(comptime n: u32) u32 {
@@ -59,7 +62,7 @@ pub const Bus = struct {
     bios: *bios.Bios,
 
     pub fn read32(self: *@This(), a: u32) u32 {
-        if (!is_aligned_log2(a, 2)) {
+        if (a % 4 != 0) {
             log.warn("unaligned read32 {x}", .{a});
             self.signal_exception(.Address);
         }
@@ -71,7 +74,7 @@ pub const Bus = struct {
             },
             else => {
                 log.warn("unmapped memory (read, address = {x})", .{a});
-                res = 0;
+                res = 0xbeefbeef;
             },
         }
 
@@ -81,7 +84,7 @@ pub const Bus = struct {
     }
 
     pub fn write32(self: *@This(), a: u32, v: u32) void {
-        if (!is_aligned_log2(a, 2)) {
+        if (a % 4 != 0) {
             log.warn("unaligned write32 {x}", .{a});
             self.signal_exception(.Address);
         }
@@ -91,6 +94,15 @@ pub const Bus = struct {
             MM.bios.start...MM.bios.end() => {
                 // BIOS ROM is read only: (https://github.com/simias/psx-hardware-tests/blob/master/tests/bios_write/main.s)
                 // no exception, no errors generated
+            },
+            MM.io_u.start...MM.io_u.end() => {
+                switch (a) {
+                    // Those two are expansion register maps 1/w base addresses.
+                    // They are always 0x1f000000 and 0x1f802000 on the PS. Don't allow remapping.
+                    0x1f801000 => unreachable,
+                    0x1f801004 => unreachable,
+                    else => log.debug("write KUSEG IO: TODO", .{}),
+                }
             },
             else => {
                 log.warn("unmapped memory (write, address = {x})", .{a});

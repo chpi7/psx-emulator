@@ -5,3 +5,4 @@ external/*
 log*
 output-*.txt
 bios/*.bin
+bios_dump.txt

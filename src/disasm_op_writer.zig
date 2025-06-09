@@ -8,65 +8,65 @@ const Op = decoder.opcodes.op;
 const OP_FMT = "{s: <7}   ";
 
 fn write_imm26(i: I, op: Op, w: anytype) !void {
-    try w.print(OP_FMT ++ "{x}", .{ @tagName(op), i.J.target });
+    try w.print(OP_FMT ++ "{x}", .{ @tagName(op), i.target() });
 }
 
 fn write_op_rd(i: I, op: Op, w: anytype) !void {
-    try w.print(OP_FMT ++ "$r{d}", .{ @tagName(op), i.R.rd });
+    try w.print(OP_FMT ++ "$r{d}", .{ @tagName(op), i.rd() });
 }
 
 fn write_op_rd_rs(i: I, op: Op, w: anytype) !void {
-    try w.print(OP_FMT ++ "$r{d}, $r{d}", .{ @tagName(op), i.R.rd, i.R.rs });
+    try w.print(OP_FMT ++ "$r{d}, $r{d}", .{ @tagName(op), i.rd(), i.rs() });
 }
 
 fn write_op_rd_rs_rt(i: I, op: Op, w: anytype) !void {
-    try w.print(OP_FMT ++ "$r{d}, $r{d}, $r{d}", .{ @tagName(op), i.R.rd, i.R.rs, i.R.rt });
+    try w.print(OP_FMT ++ "$r{d}, $r{d}, $r{d}", .{ @tagName(op), i.rd(), i.rs(), i.rt() });
 }
 
 fn write_op_rd_rt_re(i: I, op: Op, w: anytype) !void {
-    try w.print(OP_FMT ++ "$r{d}, $r{d}, $r{d}", .{ @tagName(op), i.R.rd, i.R.rt, i.R.re });
+    try w.print(OP_FMT ++ "$r{d}, $r{d}, $r{d}", .{ @tagName(op), i.rd(), i.rt(), i.re() });
 }
 
 fn write_op_rd_rt_rs(i: I, op: Op, w: anytype) !void {
-    try w.print(OP_FMT ++ "$r{d}, $r{d}, $r{d}", .{ @tagName(op), i.R.rd, i.R.rt, i.R.rs });
+    try w.print(OP_FMT ++ "$r{d}, $r{d}, $r{d}", .{ @tagName(op), i.rd(), i.rt(), i.rs() });
 }
 
 fn write_op_rs(i: I, op: Op, w: anytype) !void {
-    try w.print(OP_FMT ++ "$r{d}", .{ @tagName(op), i.R.rs });
+    try w.print(OP_FMT ++ "$r{d}", .{ @tagName(op), i.rs() });
 }
 
 fn write_op_rs_imm(i: I, op: Op, w: anytype) !void {
-    try w.print(OP_FMT ++ "$r{d}, {x}", .{ @tagName(op), i.I.rs, i.I.imm });
+    try w.print(OP_FMT ++ "$r{d}, {x}", .{ @tagName(op), i.rs(), i.imm16() });
 }
 
 fn write_op_rs_rt(i: I, op: Op, w: anytype) !void {
-    try w.print(OP_FMT ++ "$r{d}, $r{d}", .{ @tagName(op), i.R.rs, i.R.rt });
+    try w.print(OP_FMT ++ "$r{d}, $r{d}", .{ @tagName(op), i.rs(), i.rt() });
 }
 
 fn write_op_rt_imm(i: I, op: Op, w: anytype) !void {
-    try w.print(OP_FMT ++ "$r{d}, {x}", .{ @tagName(op), i.I.rt, i.I.imm });
+    try w.print(OP_FMT ++ "$r{d}, {x}", .{ @tagName(op), i.rt(), i.imm16() });
 }
 
 fn write_op_rs_rt_imm(i: I, op: Op, w: anytype) !void {
-    try w.print(OP_FMT ++ "$r{d}, $r{d}, {x}", .{ @tagName(op), i.I.rs, i.I.rt, i.I.imm });
+    try w.print(OP_FMT ++ "$r{d}, $r{d}, {x}", .{ @tagName(op), i.rs(), i.rt(), i.imm16() });
 }
 
 fn write_op_rt_offset_base(i: I, op: Op, w: anytype) !void {
-    try w.print(OP_FMT ++ "$r{d}, {x}, $r{d}", .{ @tagName(op), i.I.rt, i.I.imm, i.I.rs });
+    try w.print(OP_FMT ++ "$r{d}, {x}, $r{d}", .{ @tagName(op), i.rt(), i.imm16(), i.rs() });
 }
 
 fn write_op_rt_rs_imm(i: I, op: Op, w: anytype) !void {
-    try w.print(OP_FMT ++ "$r{d}, $r{d}, {x}", .{ @tagName(op), i.I.rt, i.I.rs, i.I.imm });
+    try w.print(OP_FMT ++ "$r{d}, $r{d}, {x}", .{ @tagName(op), i.rt(), i.rs(), i.imm16() });
 }
 
 fn write_op_sys_brk(i: I, op: Op, w: anytype) !void {
     // bits 6 - 25 are treated as a "comment"
-    const comment: u20 = @truncate(@as(u32, @bitCast(i.R)) >> 6);
+    const comment: u20 = @truncate(@as(u32, @bitCast(i.value)) >> 6);
     try w.print(OP_FMT ++ "{x}", .{ @tagName(op), comment });
 }
 
 fn write_op_rt_fs(i: I, op: Op, w: anytype) !void {
-    try w.print(OP_FMT ++ "$r{d}, <fs>", .{ @tagName(op), i.R.rt });
+    try w.print(OP_FMT ++ "$r{d}, <fs>", .{ @tagName(op), i.rt() });
 }
 
 fn write_op_cc_offset_fp(_: I, op: Op, w: anytype) !void {
@@ -82,7 +82,7 @@ pub fn write_instruction(i: I, op: Op, w: anytype, lb: bool) !void {
         .COPz => write_imm26(i, op, w),
         .J => {
             try write_imm26(i, op, w);
-            const target_general = @as(u28, i.J.target) << 2;
+            const target_general = @as(u28, i.target()) << 2;
             try w.print("     --> {x:08}", .{target_general});
         },
         .JAL => write_imm26(i, op, w),

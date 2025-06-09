@@ -9,62 +9,6 @@ const pop = opcodes.primary;
 
 const Type = enum { I, J, R };
 
-const I_I = packed struct(u32) {
-    imm: u16 = 0,
-    rt: u5 = 0,
-    rs: u5 = 0,
-    op: u6 = 0,
-
-    pub fn format(self: *const @This(), comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
-        _ = fmt;
-        _ = options;
-        try writer.print("{{ rs={} rt={} imm={x} }}", .{ self.rs, self.rt, self.imm });
-    }
-};
-
-const I_J = packed struct(u32) {
-    target: u26 = 0,
-    op: u6 = 0,
-
-    pub fn format(self: *const @This(), comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
-        _ = fmt;
-        _ = options;
-        try writer.print("{{ target = {x} }}", .{self.target});
-    }
-};
-
-const I_R = packed struct(u32) {
-    funct: u6 = 0,
-    re: u5 = 0,
-    rd: u5 = 0,
-    rt: u5 = 0,
-    rs: u5 = 0,
-    op: u6 = 0,
-
-    pub fn format(self: *const @This(), comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
-        _ = fmt;
-        _ = options;
-        try writer.print("{{ rs={} rt={} rd={} re={} }}", .{ self.rs, self.rt, self.rd, self.re });
-    }
-};
-
-pub const I = union(Type) {
-    I: I_I,
-    J: I_J,
-    R: I_R,
-
-    pub fn format(self: I, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
-        // Get rid of some extra bloat in the generated format function.
-        _ = fmt;
-        _ = options;
-        try switch (self) {
-            I.I => |x| writer.print("{}", .{x}),
-            I.J => |x| writer.print("{}", .{x}),
-            I.R => |x| writer.print("{}", .{x}),
-        };
-    }
-};
-
 fn get_type_special(i: I) Type {
     const subop: u6 = @truncate(@as(u32, @bitCast(i.R)));
     if (subop == @intFromEnum(sop.JR)) {
@@ -101,11 +45,51 @@ fn get_type(i: I, op: mn) Type {
     };
 }
 
-fn get_op_branch(i: I) mn {
-    const ge = (0b00001 & i.R.rt) != 0;
-    const mid_nz = (0b01110 & i.R.rt) != 0;
+pub const I = struct {
+    value: u32,
 
-    return switch (i.R.rt) {
+    inline fn extract(comptime T: type, comptime start: u7, i: u32) T {
+        return @truncate(i >> start);
+    }
+
+    pub inline fn op(self: *const @This()) u6 {
+        return extract(u6, 26, self.value);
+    }
+
+    pub inline fn imm16(self: *const @This()) u16 {
+        return extract(u16, 0, self.value);
+    }
+
+    pub inline fn target(self: *const @This()) u26 {
+        return extract(u26, 0, self.value);
+    }
+
+    pub inline fn rs(self: *const @This()) u5 {
+        return extract(u5, 21, self.value);
+    }
+
+    pub inline fn rt(self: *const @This()) u5 {
+        return extract(u5, 16, self.value);
+    }
+
+    pub inline fn rd(self: *const @This()) u5 {
+        return extract(u5, 11, self.value);
+    }
+
+    pub inline fn re(self: *const @This()) u5 {
+        return extract(u5, 6, self.value);
+    }
+
+    pub inline fn subop(self: *const @This()) u6 {
+        return extract(u6, 0, self.value);
+    }
+};
+
+fn get_op_branch(i: I) mn {
+    const ge = (0b00001 & i.rt()) != 0;
+    const mid_nz = (0b01110 & i.rt()) != 0;
+
+    return switch (i.rt()) {
         0b00000 => mn.BLTZ,
         0b00001 => mn.BGEZ,
         0b10000 => mn.BLTZAL,
@@ -115,13 +99,13 @@ fn get_op_branch(i: I) mn {
 }
 
 fn get_op_copz(i: I) mn {
-    std.debug.assert((i.R.op & 0b110000) == 0b010000);
-    return switch (i.R.rs) {
+    std.debug.assert((i.op() & 0b110000) == 0b010000);
+    return switch (i.rs()) {
         0b00000 => mn.MFCz,
         0b00010 => mn.CFCz,
         0b00100 => mn.MTCz,
         0b00110 => mn.CTCz,
-        0b01000 => switch (i.R.rt) {
+        0b01000 => switch (i.rt()) {
             0 => mn.BCzF,
             1 => mn.BCzT,
             else => mn.ILLEGAL,
@@ -132,16 +116,16 @@ fn get_op_copz(i: I) mn {
 }
 
 fn get_op(i: I) mn {
-    return switch (i.R.op) {
-        0x00 => opcodes.resolve_subop(i.R.funct),
+    return switch (i.op()) {
+        0x00 => opcodes.resolve_subop(i.subop()),
         0x01 => get_op_branch(i),
-        0x02...0x0f => opcodes.resolve_op(i.R.op),
+        0x02...0x0f => opcodes.resolve_op(i.op()),
         0x10...0x13 => get_op_copz(i),
-        0x20...0x26 => opcodes.resolve_op(i.R.op),
-        0x28...0x2b => opcodes.resolve_op(i.R.op),
-        0x2e => opcodes.resolve_op(i.R.op),
-        0x30...0x33 => opcodes.resolve_op(i.R.op),
-        0x38...0x3b => opcodes.resolve_op(i.R.op),
+        0x20...0x26 => opcodes.resolve_op(i.op()),
+        0x28...0x2b => opcodes.resolve_op(i.op()),
+        0x2e => opcodes.resolve_op(i.op()),
+        0x30...0x33 => opcodes.resolve_op(i.op()),
+        0x38...0x3b => opcodes.resolve_op(i.op()),
         else => mn.ILLEGAL,
     };
 }
@@ -149,20 +133,9 @@ fn get_op(i: I) mn {
 pub fn decode(in: u32) struct { I, mn } {
     log.debug("decode 0x{x:08}", .{in});
 
-    std.debug.assert(@bitOffsetOf(I_I, "op") == 26);
-    std.debug.assert(@bitOffsetOf(I_J, "op") == 26);
-    std.debug.assert(@bitOffsetOf(I_R, "op") == 26);
-
     // To decode, use R format to get access to primary op and subop.
-    const tmp: I = I{ .R = @bitCast(in) };
-    const op = get_op(tmp);
-    const t = get_type(tmp, op);
-
-    const instr = switch (t) {
-        Type.I => I{ .I = @bitCast(in) },
-        Type.J => I{ .J = @bitCast(in) },
-        Type.R => I{ .R = @bitCast(in) },
-    };
+    const instr: I = I{ .value = in };
+    const op = get_op(instr);
 
     return .{ instr, op };
 }
@@ -186,24 +159,20 @@ const TC = struct {
             return;
         }
 
-        const tag_exp = std.meta.activeTag(self.expect.i);
-        const tag_act = std.meta.activeTag(instr);
-        try std.testing.expectEqual(tag_exp, tag_act);
-
         switch (self.expect.i) {
             .I => |v| {
-                try std.testing.expectEqual(v.rs, instr.I.rs);
-                try std.testing.expectEqual(v.rt, instr.I.rt);
-                try std.testing.expectEqual(v.imm, instr.I.imm);
+                try std.testing.expectEqual(v.rs, instr.rs());
+                try std.testing.expectEqual(v.rt, instr.rt());
+                try std.testing.expectEqual(v.imm, instr.imm16());
             },
             .J => |v| {
-                try std.testing.expectEqual(v.target, instr.J.target);
+                try std.testing.expectEqual(v.target, instr.target());
             },
             .R => |v| {
-                try std.testing.expectEqual(v.rs, instr.R.rs);
-                try std.testing.expectEqual(v.rt, instr.R.rt);
-                try std.testing.expectEqual(v.rd, instr.R.rd);
-                try std.testing.expectEqual(v.re, instr.R.re);
+                try std.testing.expectEqual(v.rs, instr.rs());
+                try std.testing.expectEqual(v.rt, instr.rt());
+                try std.testing.expectEqual(v.rd, instr.rd());
+                try std.testing.expectEqual(v.re, instr.re());
                 // Dont check this, we use it to find op, which we already check above.
                 // try std.testing.expectEqual(v.funct, instr.R.funct);
             },

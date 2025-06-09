@@ -113,33 +113,33 @@ pub const Cpu = struct {
     // ----------------------- Instructions -----------------------
 
     fn op_lui(self: *@This(), i: I) void {
-        self.rf.write(i.I.rt, @as(u32, i.I.imm) << 16);
+        self.rf.write(i.rt(), @as(u32, i.imm16()) << 16);
     }
 
     fn op_ori(self: *@This(), i: I) void {
-        const imm32 = zero_ext(i.I.rt);
-        self.rf.write(i.I.rt, imm32 | self.rf.read(i.I.rs));
+        const imm32 = zero_ext(i.rt());
+        self.rf.write(i.rt(), imm32 | self.rf.read(i.rs()));
     }
 
     fn op_sll(self: *@This(), i: I) void {
-        const sa = i.R.re;
-        const res = self.rf.read(i.R.rt) << sa;
-        self.rf.write(i.R.rd, res);
+        const sa = i.re();
+        const res = self.rf.read(i.rt()) << sa;
+        self.rf.write(i.rd(), res);
     }
 
     fn op_sw(self: *@This(), i: I) void {
-        const dst_addr = self.rf.read(i.I.rs) +% sign_ext(i.I.imm);
-        const v = self.rf.read(i.I.rt);
+        const dst_addr = self.rf.read(i.rs()) +% sign_ext(i.imm16());
+        const v = self.rf.read(i.rt());
         self.bus.write32(dst_addr, v);
     }
 
     fn op_addiu(self: *@This(), i: I) void {
-        const res = self.rf.read(i.I.rs) +% i.I.imm;
-        self.rf.write(i.I.rt, res);
+        const res = self.rf.read(i.rs()) +% i.imm16();
+        self.rf.write(i.rt(), res);
     }
 
     fn op_j(self: *@This(), i: I) void {
-        const instr_index = @as(u28, @intCast(i.J.target)) << 2;
+        const instr_index = @as(u28, @intCast(i.target())) << 2;
         const new_pc = (self.rf.pc & math.bitmask_rnc(u32, 28, 4)) | instr_index;
         self.branch_to(new_pc);
     }

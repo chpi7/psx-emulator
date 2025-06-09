@@ -1,5 +1,6 @@
 const std = @import("std");
 const bios = @import("bios.zig");
+const math = @import("math.zig");
 
 const log = std.log.scoped(.bus);
 
@@ -51,8 +52,8 @@ const MM = struct {
     pub const IO_RAM_SIZE = 0x1f801060;
 };
 
-inline fn bitmask(comptime n: u32) u32 {
-    return (1 << n) - 1;
+inline fn bitmask(comptime n: u7) u32 {
+    return math.bitmask(u32, n);
 }
 
 inline fn is_aligned_log2(addr: u32, comptime alignment: u32) bool {

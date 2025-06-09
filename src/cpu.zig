@@ -79,6 +79,7 @@ pub const Cpu = struct {
             .ORI => self.op_ori(i),
             .SW => self.op_sw(i),
             .SLL => self.op_sll(i),
+            .J => self.op_j(i),
             else => {
                 log.err("unknown instruction encountered. halted := true", .{});
                 self.halted = true;
@@ -111,5 +112,11 @@ pub const Cpu = struct {
         const dst_addr = self.rf.read(i.I.rs) +% sign_ext(i.I.imm);
         const v = self.rf.read(i.I.rt);
         self.bus.write32(dst_addr, v);
+    }
+
+    fn op_j(self: *@This(), i: I) void {
+        const instr_index = @as(u28, @intCast(i.J.target)) << 2;
+        const new_pc = (self.rf.pc & math.bitmask_rnc(u32, 28, 4)) | instr_index;
+        self.rf.pc = new_pc;
     }
 };
